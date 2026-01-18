@@ -531,7 +531,22 @@ export const integrations = {
         }
         
         const result = await response.json();
-        return { file_url: result.url || result.file_url };
+        // Build proper URL - the file_url from backend is relative like /uploads/file.csv
+        // We need to make it accessible from the API
+        let fileUrl = result.file_url || result.url;
+        
+        // If it's a relative path starting with /uploads, prepend the API base
+        if (fileUrl && fileUrl.startsWith('/uploads')) {
+          // For Emergent preview environment, use relative path through API proxy
+          if (window.location.hostname.includes('emergentagent.com')) {
+            fileUrl = `/api${fileUrl.replace('/uploads', '/files/serve')}`;
+          } else {
+            // For local dev, use full localhost URL
+            fileUrl = `http://localhost:8001${fileUrl}`;
+          }
+        }
+        
+        return { file_url: fileUrl };
       } catch (error) {
         console.error('File upload failed:', error);
         throw error;
