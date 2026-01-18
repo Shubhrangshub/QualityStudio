@@ -333,6 +333,57 @@ async def get_statistics():
     """Get overall statistics"""
     stats = {}
     for entity_name, (_, collection_name) in COLLECTIONS.items():
+
+# AI Service Endpoints
+from services import ai_service_mock
+
+@app.post("/api/ai/rca-suggestions", tags=["AI"])
+async def get_ai_rca_suggestions(data: Dict[str, Any]):
+    """Get AI-powered RCA suggestions"""
+    defect_description = data.get("description", "")
+    defect_type = data.get("defectType", "unknown")
+    severity = data.get("severity", "minor")
+    
+    suggestions = ai_service_mock.get_rca_suggestions(defect_description, defect_type, severity)
+    return suggestions
+
+@app.post("/api/ai/classify-defect", tags=["AI"])
+async def classify_defect(data: Dict[str, Any]):
+    """AI-powered defect classification"""
+    description = data.get("description", "")
+    image_url = data.get("imageUrl")
+    
+    classification = ai_service_mock.classify_defect(description, image_url)
+    return classification
+
+@app.post("/api/ai/generate-capa", tags=["AI"])
+async def generate_capa_actions(data: Dict[str, Any]):
+    """Generate CAPA actions based on root cause"""
+    root_cause = data.get("rootCause", "")
+    defect_type = data.get("defectType", "")
+    
+    capa = ai_service_mock.generate_capa_actions(root_cause, defect_type)
+    return capa
+
+@app.post("/api/ai/predict-trend", tags=["AI"])
+async def predict_defect_trend(data: Dict[str, Any]):
+    """Predict defect trends"""
+    historical_defects = data.get("historicalDefects", [])
+    
+    prediction = ai_service_mock.predict_defect_trend(historical_defects)
+    return prediction
+
+@app.post("/api/ai/search-knowledge", tags=["AI"])
+async def search_knowledge(data: Dict[str, Any]):
+    """Semantic knowledge base search"""
+    query = data.get("query", "")
+    
+    # Get all knowledge documents
+    documents = await get_items("knowledge_documents", limit=1000)
+    
+    results = ai_service_mock.search_knowledge_base(query, documents)
+    return results
+
         count = await db[collection_name].count_documents({})
         stats[entity_name] = count
     return stats
