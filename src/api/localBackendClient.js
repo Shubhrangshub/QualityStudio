@@ -487,7 +487,7 @@ export class NotificationSocket {
 // Global notification socket instance
 export const notificationSocket = new NotificationSocket();
 
-// Export as base44 compatible interface
+// Export as API interface
 export const localBackend = {
   entities,
   auth,
