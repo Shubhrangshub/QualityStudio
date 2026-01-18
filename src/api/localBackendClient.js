@@ -1,8 +1,22 @@
-// Local backend API client (replaces Base44)
+// Local backend API client with JWT authentication
 // Use relative URL if in Emergent preview, absolute URL for local dev
 const API_BASE_URL = window.location.hostname.includes('emergentagent.com')
   ? '/api'  // Emergent preview uses proxy
-  : import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';  // Local dev
+  : import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
+
+// Helper to get auth token
+const getAuthToken = () => {
+  return localStorage.getItem('access_token');
+};
+
+// Helper to get auth headers
+const getAuthHeaders = () => {
+  const token = getAuthToken();
+  if (token) {
+    return { 'Authorization': `Bearer ${token}` };
+  }
+  return {};
+};
 
 class LocalAPIClient {
   constructor(baseURL) {
@@ -15,14 +29,26 @@ class LocalAPIClient {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
         ...options.headers,
       },
     };
 
     try {
       const response = await fetch(url, config);
+      
+      // Handle 401 Unauthorized - token might be expired
+      if (response.status === 401) {
+        console.warn('Unauthorized - token may be expired');
+        // Optionally trigger logout/redirect
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('current_user');
+        // window.location.reload();
+      }
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
       return await response.json();
     } catch (error) {
@@ -92,16 +118,144 @@ export const entities = {
   KPI: apiClient.createEntityClass('kpis'),
 };
 
-// Simple auth mock (replace with real auth in production)
+// Auth API
 export const auth = {
+  // Login with email and password
+  login: async (email, password) => {
+    const response = await apiClient.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+    
+    // Store token
+    if (response.access_token) {
+      localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('current_user', JSON.stringify(response.user));
+    }
+    
+    return response;
+  },
+  
+  // Register new user
+  register: async (email, password, name, role = 'operator') => {
+    const response = await apiClient.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, name, role }),
+    });
+    
+    // Store token
+    if (response.access_token) {
+      localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('current_user', JSON.stringify(response.user));
+    }
+    
+    return response;
+  },
+  
+  // Validate current token
+  validateToken: async () => {
+    const token = getAuthToken();
+    if (!token) return null;
+    
+    try {
+      const response = await apiClient.request('/auth/validate-token', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      });
+      return response.user;
+    } catch (error) {
+      console.warn('Token validation failed:', error);
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('current_user');
+      return null;
+    }
+  },
+  
+  // Get current user
   me: async () => {
-    return { id: 'demo-user', name: 'Demo User', email: 'demo@qualitystudio.com' };
+    try {
+      return await apiClient.request('/auth/me');
+    } catch (error) {
+      console.warn('Failed to get current user:', error);
+      return null;
+    }
   },
+  
+  // Get current user from localStorage
+  getCurrentUser: () => {
+    const userStr = localStorage.getItem('current_user');
+    if (userStr) {
+      try {
+        return JSON.parse(userStr);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  },
+  
+  // Check if user is logged in
+  isLoggedIn: () => {
+    return !!getAuthToken() && !!localStorage.getItem('current_user');
+  },
+  
+  // Logout
   logout: () => {
-    // Handle logout
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('current_user');
+    window.location.reload();
   },
+  
+  // Redirect to login
   redirectToLogin: () => {
-    // Handle login redirect
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('current_user');
+    window.location.href = '/';
+  },
+};
+
+// AI Service API
+export const ai = {
+  getRCASuggestions: async (description, defectType, severity) => {
+    return await apiClient.request('/ai/rca-suggestions', {
+      method: 'POST',
+      body: JSON.stringify({ description, defectType, severity }),
+    });
+  },
+  
+  classifyDefect: async (description, imageUrl = null) => {
+    return await apiClient.request('/ai/classify-defect', {
+      method: 'POST',
+      body: JSON.stringify({ description, imageUrl }),
+    });
+  },
+  
+  generateCAPA: async (rootCause, defectType) => {
+    return await apiClient.request('/ai/generate-capa', {
+      method: 'POST',
+      body: JSON.stringify({ rootCause, defectType }),
+    });
+  },
+  
+  predictTrend: async (historicalDefects) => {
+    return await apiClient.request('/ai/predict-trend', {
+      method: 'POST',
+      body: JSON.stringify({ historicalDefects }),
+    });
+  },
+  
+  searchKnowledge: async (query) => {
+    return await apiClient.request('/ai/search-knowledge', {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    });
+  },
+};
+
+// Statistics API
+export const statistics = {
+  get: async () => {
+    return await apiClient.request('/statistics');
   },
 };
 
@@ -109,6 +263,8 @@ export const auth = {
 export const localBackend = {
   entities,
   auth,
+  ai,
+  statistics,
 };
 
 export default localBackend;
