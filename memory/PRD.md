@@ -238,11 +238,12 @@ Replicate a Quality Management System application named "QualityStudio" from a n
 - `/app/nginx.conf` - Nginx configuration
 - `/app/src/App.jsx` - Frontend authentication
 - `/app/src/Layout.jsx` - Main navigation with NotificationBell
+- `/app/src/api/apiClient.js` - Main API client export (renamed from base44Client.js)
+- `/app/src/api/localBackendClient.js` - API client with JWT auth and all services
+- `/app/src/lib/AuthContext.jsx` - Authentication context (rewritten, no @base44/sdk)
 - `/app/src/components/ExportButton.jsx` - Export buttons
 - `/app/src/components/NotificationBell.jsx` - Real-time notifications
-- `/app/src/api/localBackendClient.js` - API client with all services
 - `/app/src/styles/responsive.css` - Mobile responsive styles
-- `/app/tests/test_backend_api.py` - Backend test suite
-- `/app/tests/test_new_features.py` - New features test suite
-- `/app/test_reports/iteration_3.json` - Latest test results
+- `/app/tests/test_quality_studio_api.py` - Backend test suite (27 tests)
+- `/app/test_reports/iteration_4.json` - Latest test results (Base44 cleanup verified)
 - `/app/import_database.py` - Database import script
