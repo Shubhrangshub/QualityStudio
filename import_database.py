@@ -75,9 +75,9 @@ for entity_name, collection_name in COLLECTION_MAP.items():
             # Convert dates and prepare records
             for record in records:
                 convert_dates(record)
-                # Remove the Base44 'id' field to avoid conflicts
+                # Remove the original 'id' field to avoid conflicts with MongoDB _id
                 if 'id' in record:
-                    record['base44_id'] = record.pop('id')
+                    record['original_id'] = record.pop('id')
                 # Ensure created_date exists
                 if 'created_date' not in record:
                     record['created_date'] = datetime.utcnow()
