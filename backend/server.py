@@ -839,53 +839,53 @@ async def get_statistics():
         stats[display_name] = count
     return stats
 
-# AI Service Endpoints (mock for now, will be replaced with real AI)
-from services import ai_service_mock
+# AI Service Endpoints (using GPT-5.2)
+from services import ai_service
 
 @app.post("/api/ai/rca-suggestions", tags=["AI"])
 async def get_ai_rca_suggestions(data: Dict[str, Any]):
-    """Get AI-powered RCA suggestions"""
+    """Get AI-powered RCA suggestions using GPT-5.2"""
     defect_description = data.get("description", "")
     defect_type = data.get("defectType", "unknown")
     severity = data.get("severity", "minor")
     
-    suggestions = ai_service_mock.get_rca_suggestions(defect_description, defect_type, severity)
+    suggestions = await ai_service.get_rca_suggestions(defect_description, defect_type, severity)
     return suggestions
 
 @app.post("/api/ai/classify-defect", tags=["AI"])
 async def classify_defect(data: Dict[str, Any]):
-    """AI-powered defect classification"""
+    """AI-powered defect classification using GPT-5.2"""
     description = data.get("description", "")
     image_url = data.get("imageUrl")
     
-    classification = ai_service_mock.classify_defect(description, image_url)
+    classification = await ai_service.classify_defect(description, image_url)
     return classification
 
 @app.post("/api/ai/generate-capa", tags=["AI"])
 async def generate_capa_actions(data: Dict[str, Any]):
-    """Generate CAPA actions based on root cause"""
+    """Generate CAPA actions based on root cause using GPT-5.2"""
     root_cause = data.get("rootCause", "")
     defect_type = data.get("defectType", "")
     
-    capa = ai_service_mock.generate_capa_actions(root_cause, defect_type)
+    capa = await ai_service.generate_capa_actions(root_cause, defect_type)
     return capa
 
 @app.post("/api/ai/predict-trend", tags=["AI"])
 async def predict_defect_trend(data: Dict[str, Any]):
-    """Predict defect trends"""
+    """Predict defect trends using GPT-5.2"""
     historical_defects = data.get("historicalDefects", [])
     
-    prediction = ai_service_mock.predict_defect_trend(historical_defects)
+    prediction = await ai_service.predict_defect_trend(historical_defects)
     return prediction
 
 @app.post("/api/ai/search-knowledge", tags=["AI"])
 async def search_knowledge(data: Dict[str, Any]):
-    """Semantic knowledge base search"""
+    """Semantic knowledge base search using GPT-5.2"""
     query = data.get("query", "")
     
     documents = await get_items("knowledge_documents", limit=1000)
     
-    results = ai_service_mock.search_knowledge_base(query, documents)
+    results = await ai_service.search_knowledge_base(query, documents)
     return results
 
 if __name__ == "__main__":
