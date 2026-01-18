@@ -507,12 +507,12 @@ Provide:
           <p className="text-gray-600 mt-1">Report and track quality defects</p>
         </div>
 
-        {!isLoading && !isAdmin && (
+        {!isLoading && !canCreateDefect && (
           <Alert className="mb-6 bg-orange-50 border-orange-300">
             <AlertCircle className="h-4 w-4 text-orange-600" />
             <AlertDescription className="text-orange-900">
-              <strong>Admin Access Only:</strong> Only administrators can create new defect tickets. 
-              If you need to report a defect, please contact your administrator.
+              <strong>Access Restricted:</strong> You don't have permission to create defect tickets. 
+              Please contact your administrator if you need access.
             </AlertDescription>
           </Alert>
         )}
