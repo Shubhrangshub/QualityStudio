@@ -484,10 +484,10 @@ export default function Layout({ children, currentPageName }) {
                       </span>
                     </div>
                     <div className="flex-1 text-left min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">
+                      <p className="font-medium text-gray-900 text-sm">
                         {user?.name || 'User'}
                       </p>
-                      <p className="text-xs text-gray-500 truncate capitalize">
+                      <p className="text-xs text-gray-500 capitalize">
                         {user?.role?.replace('_', ' ')}
                         {user?.role === "admin" && " ⭐"}
                       </p>
