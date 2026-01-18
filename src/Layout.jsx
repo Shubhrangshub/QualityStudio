@@ -229,7 +229,7 @@ export default function Layout({ children, currentPageName }) {
 
   const handleLogout = () => {
     // Clear localStorage and reload
-    localStorage.removeItem('user');
+    localStorage.removeItem('current_user');
     localStorage.removeItem('access_token');
     window.location.reload();
   };
