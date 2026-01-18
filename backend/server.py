@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Query
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
@@ -7,7 +7,10 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from auth.auth_service import AuthService, authenticate_user, get_user_by_id, DEMO_USERS
+from auth.auth_service import (
+    AuthService, authenticate_user, get_user_by_id, DEMO_USERS,
+    authenticate_user_async, get_user_by_id_async, create_user, set_database
+)
 from auth.permissions import User, Role, Permission, check_permission, ROLE_DESCRIPTIONS
 from bson import ObjectId
 
@@ -31,6 +34,63 @@ DB_NAME = os.environ.get("DB_NAME", "quality_studio")
 
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
+
+# Set database for auth service
+set_database(db)
+
+# Security
+security = HTTPBearer(auto_error=False)
+
+async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Optional[Dict]:
+    """Get current user from token (optional - returns None if no token)"""
+    if not credentials:
+        return None
+    
+    token = credentials.credentials
+    is_valid, payload, error = AuthService.validate_token(token)
+    
+    if not is_valid:
+        return None
+    
+    user_id = payload.get("sub")
+    user = await get_user_by_id_async(user_id)
+    return user
+
+async def get_current_user_required(credentials: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
+    """Get current user from token (required - raises 401 if no valid token)"""
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    token = credentials.credentials
+    is_valid, payload, error = AuthService.validate_token(token)
+    
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error or "Invalid token")
+    
+    user_id = payload.get("sub")
+    user = await get_user_by_id_async(user_id)
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    if not user.get("is_active", True):
+        raise HTTPException(status_code=403, detail="User account is disabled")
+    
+    return user
+
+def require_role(*roles):
+    """Dependency that requires user to have one of the specified roles"""
+    async def role_checker(current_user: Dict = Depends(get_current_user_required)):
+        user_role = current_user.get("role", "")
+        if user_role not in roles and "admin" not in roles:
+            # Admins always have access
+            if user_role != "admin":
+                raise HTTPException(
+                    status_code=403, 
+                    detail=f"Access denied. Required role: {', '.join(roles)}"
+                )
+        return current_user
+    return role_checker
 
 # Base Model
 class BaseDBModel(BaseModel):
