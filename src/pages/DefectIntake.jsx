@@ -492,7 +492,11 @@ Provide:
     });
   };
 
-  const isAdmin = currentUser?.role === 'admin';
+  // Allow admin, quality_engineer, and quality_inspector to create defects
+  const canCreateDefect = currentUser?.role === 'admin' || 
+                          currentUser?.role === 'quality_engineer' || 
+                          currentUser?.role === 'quality_inspector' ||
+                          currentUser?.role === 'operator';
   const isLoading = currentUser === null;
 
   return (
