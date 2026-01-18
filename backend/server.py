@@ -6,6 +6,9 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from auth.auth_service import AuthService, authenticate_user, get_user_by_id, DEMO_USERS
+from auth.permissions import User, Role, Permission, check_permission, ROLE_DESCRIPTIONS
 
 load_dotenv()
 
