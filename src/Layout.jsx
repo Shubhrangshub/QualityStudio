@@ -518,12 +518,22 @@ export default function Layout({ children, currentPageName }) {
         </Sidebar>
 
         <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Desktop Header Bar */}
+          <header className="bg-white border-b border-gray-200 px-6 py-3 hidden lg:flex items-center justify-between">
+            <h1 className="text-lg font-semibold text-gray-900">{currentPageName}</h1>
+            <div className="flex items-center gap-3">
+              <ExportAllButton variant="outline" size="sm" />
+              <NotificationBell userId={user?.id} />
+            </div>
+          </header>
+          
+          {/* Mobile Header */}
           <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between lg:hidden">
             <SidebarTrigger className="hover:bg-gray-100 p-2 rounded-lg transition-colors">
               <Menu className="w-5 h-5" />
             </SidebarTrigger>
             <h1 className="text-lg font-semibold text-gray-900">{currentPageName}</h1>
-            <div className="w-9" />
+            <NotificationBell userId={user?.id} />
           </header>
 
           <div className="flex-1 overflow-auto">
