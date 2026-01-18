@@ -223,31 +223,13 @@ function LoginPage() {
   );
 }
 
-// Layout wrapper with logout
+// Layout wrapper
 const LayoutWrapper = ({ children, currentPageName }) => {
-  const { user, logout } = useAuth();
-
   if (Layout) {
     return (
-      <>
-        <div className="fixed top-4 right-4 z-50">
-          <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-lg shadow-lg border border-gray-200">
-            <div className="text-sm">
-              <div className="font-semibold text-gray-900">{user?.name}</div>
-              <div className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ')}</div>
-            </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition font-medium"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-        <Layout currentPageName={currentPageName}>
-          {children}
-        </Layout>
-      </>
+      <Layout currentPageName={currentPageName}>
+        {children}
+      </Layout>
     );
   }
   
