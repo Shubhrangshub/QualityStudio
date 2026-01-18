@@ -492,7 +492,7 @@ Provide:
     });
   };
 
-  const isAdmin = (currentUser?.customRole || currentUser?.role)?.toLowerCase() === 'admin';
+  const isAdmin = currentUser?.role === 'admin';
   const isLoading = currentUser === null;
 
   return (
