@@ -215,12 +215,24 @@ Replicate a Quality Management System application named "QualityStudio" from a n
 - [ ] Integration with external ERP systems
 
 ## Files of Reference
-- `/app/backend/server.py` - Main backend API
+- `/app/backend/server.py` - Main backend API with all endpoints
 - `/app/backend/services/ai_service.py` - AI service with GPT-5.2
+- `/app/backend/services/export_service.py` - PDF/Excel export
+- `/app/backend/services/file_upload_service.py` - File upload handling
+- `/app/backend/services/email_service.py` - Email notifications
+- `/app/backend/services/websocket_service.py` - Real-time WebSocket
 - `/app/backend/auth/auth_service.py` - JWT authentication
+- `/app/backend/Dockerfile` - Backend Docker image
+- `/app/Dockerfile` - Frontend Docker image
+- `/app/docker-compose.yml` - Full stack deployment
+- `/app/nginx.conf` - Nginx configuration
 - `/app/src/App.jsx` - Frontend authentication
-- `/app/src/Layout.jsx` - Main navigation layout
-- `/app/src/api/localBackendClient.js` - API client with JWT
-- `/app/tests/test_backend_api.py` - Test suite
-- `/app/test_reports/iteration_2.json` - Latest test results
+- `/app/src/Layout.jsx` - Main navigation with NotificationBell
+- `/app/src/components/ExportButton.jsx` - Export buttons
+- `/app/src/components/NotificationBell.jsx` - Real-time notifications
+- `/app/src/api/localBackendClient.js` - API client with all services
+- `/app/src/styles/responsive.css` - Mobile responsive styles
+- `/app/tests/test_backend_api.py` - Backend test suite
+- `/app/tests/test_new_features.py` - New features test suite
+- `/app/test_reports/iteration_3.json` - Latest test results
 - `/app/import_database.py` - Database import script
