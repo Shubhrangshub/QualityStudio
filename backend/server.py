@@ -374,16 +374,16 @@ async def get_demo_users():
 # CustomerComplaint endpoints
 @app.get("/api/customer_complaints", tags=["CustomerComplaint"])
 async def list_customer_complaints(sort: Optional[str] = None, limit: int = 100):
-    return await get_items("CustomerComplaint", sort, limit)
+    return await get_items("customer_complaints", sort, limit)
 
 @app.post("/api/customer_complaints", tags=["CustomerComplaint"])
 async def create_customer_complaint(item: CustomerComplaint):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    return await create_item("CustomerComplaint", item_dict)
+    return await create_item("customer_complaints", item_dict)
 
 @app.get("/api/customer_complaints/{item_id}", tags=["CustomerComplaint"])
 async def get_customer_complaint(item_id: str):
-    item = await get_item_by_id("CustomerComplaint", item_id)
+    item = await get_item_by_id("customer_complaints", item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -391,21 +391,21 @@ async def get_customer_complaint(item_id: str):
 @app.put("/api/customer_complaints/{item_id}", tags=["CustomerComplaint"])
 async def update_customer_complaint(item_id: str, item: CustomerComplaint):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    updated = await update_item("CustomerComplaint", item_id, item_dict)
+    updated = await update_item("customer_complaints", item_id, item_dict)
     if not updated:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
 
 @app.delete("/api/customer_complaints/{item_id}", tags=["CustomerComplaint"])
 async def delete_customer_complaint(item_id: str):
-    deleted = await delete_item("CustomerComplaint", item_id)
+    deleted = await delete_item("customer_complaints", item_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully"}
 
 @app.post("/api/customer_complaints/filter", tags=["CustomerComplaint"])
 async def filter_customer_complaints(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
-    return await filter_items("CustomerComplaint", filters, sort, limit)
+    return await filter_items("customer_complaints", filters, sort, limit)
 
 # DefectTicket endpoints
 @app.get("/api/defect_tickets", tags=["DefectTicket"])
