@@ -974,6 +974,60 @@ async def search_knowledge(data: Dict[str, Any]):
     results = await ai_service.search_knowledge_base(query, documents)
     return results
 
+@app.post("/api/ai/invoke-llm", tags=["AI"])
+async def invoke_llm(data: Dict[str, Any]):
+    """Generic LLM invocation endpoint for frontend integrations
+    
+    This replaces the Base44 integrations.Core.InvokeLLM functionality.
+    Supports structured prompts with optional JSON schema for responses.
+    """
+    prompt = data.get("prompt", "")
+    response_json_schema = data.get("response_json_schema", None)
+    add_context = data.get("add_context_from_user_data", False)
+    
+    if not prompt:
+        return {"error": "Prompt is required", "response": None}
+    
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        import uuid
+        
+        EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+        
+        # Build system message based on whether JSON schema is expected
+        system_message = "You are a helpful AI assistant for quality management tasks."
+        if response_json_schema:
+            system_message += f"\n\nYou must respond in valid JSON format matching this schema:\n{json.dumps(response_json_schema, indent=2)}"
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"invoke-{uuid.uuid4()}",
+            system_message=system_message
+        ).with_model("openai", "gpt-5.2")
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Try to parse as JSON if schema was provided
+        if response_json_schema:
+            try:
+                response_text = response.strip()
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                return json.loads(response_text.strip())
+            except json.JSONDecodeError:
+                return {"response": response, "model": "gpt-5.2"}
+        else:
+            return {"response": response, "model": "gpt-5.2"}
+            
+    except Exception as e:
+        logger.error(f"LLM invocation error: {str(e)}")
+        return {"error": str(e), "response": None, "model": "error"}
+
 # ============== FILE UPLOAD ENDPOINTS ==============
 from services.file_upload_service import save_upload_file, save_multiple_files, delete_file, list_files
 from fastapi.responses import FileResponse
