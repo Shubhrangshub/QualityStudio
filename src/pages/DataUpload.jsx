@@ -620,9 +620,21 @@ export default function DataUpload() {
       console.log('✅ Upload complete - history should refresh now');
       setPendingUpload(null);
     } catch (error) {
+      // Handle error message - could be string or object
+      let errorMessage = "Failed to save data";
+      if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.detail) {
+        errorMessage = error.detail;
+      } else if (typeof error === 'object') {
+        errorMessage = JSON.stringify(error);
+      }
+      
       setUploadResult({
         success: false,
-        message: error.message || "Failed to save data"
+        message: errorMessage
       });
     }
     
