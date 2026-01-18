@@ -1,5 +1,4 @@
 // QualityStudio App Parameters
-// Simple configuration without Base44 dependencies
 
 const isNode = typeof window === 'undefined';
 
