@@ -213,34 +213,44 @@ export default function Layout({ children, currentPageName }) {
 
   const loadUserAndAlerts = async () => {
     try {
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      
-      // Load role permissions
-      const userRole = currentUser.customRole || currentUser.role;
-      const perms = await base44.entities.RolePermissions.filter({ role: userRole, isActive: true });
-      if (perms.length > 0) {
-        setRolePermissions(perms[0]);
+      // Use localStorage user instead of Base44
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const currentUser = JSON.parse(storedUser);
+        setUser(currentUser);
       }
       
-      // Load only top 2 critical alerts
-      const openDefects = await base44.entities.DefectTicket.filter({ status: "open", severity: "critical" }, "-created_date", 2);
-      setAlerts(openDefects);
+      // Skip loading alerts for now (would need backend API)
+      setAlerts([]);
     } catch (error) {
       console.error("Error loading user:", error);
     }
   };
 
   const handleLogout = () => {
-    base44.auth.logout();
+    // Clear localStorage and reload
+    localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+    window.location.reload();
   };
 
-  const userRole = user?.customRole || user?.role || "Operator";
+  const userRole = user?.role || "operator";
+  
+  // Map frontend roles to navigation roles
+  const roleMapping = {
+    'admin': 'Admin',
+    'quality_engineer': 'Process Engineer',
+    'quality_inspector': 'Shift QC',
+    'sales': 'Sales',
+    'operator': 'Operator'
+  };
+  
+  const mappedRole = roleMapping[userRole] || 'Operator';
   
   // Filter navigation based on role permissions
   const filteredNav = navigationItems.filter(item => {
     // Admin always has access to everything
-    if (userRole.toLowerCase() === 'admin') return true;
+    if (userRole === 'admin') return true;
     
     // If no role permissions configured, use legacy role-based filtering
     if (!rolePermissions) {
