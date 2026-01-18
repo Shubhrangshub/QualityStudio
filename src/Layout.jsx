@@ -480,16 +480,16 @@ export default function Layout({ children, currentPageName }) {
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
                       <span className="text-white font-semibold text-sm">
-                        {user?.full_name?.[0] || 'U'}
+                        {user?.name?.[0] || 'U'}
                       </span>
                     </div>
                     <div className="flex-1 text-left min-w-0">
                       <p className="font-medium text-gray-900 text-sm truncate">
-                        {user?.full_name || 'User'}
+                        {user?.name || 'User'}
                       </p>
-                      <p className="text-xs text-gray-500 truncate">
-                        {userRole}
-                        {userRole.toLowerCase() === "admin" && " ⭐"}
+                      <p className="text-xs text-gray-500 truncate capitalize">
+                        {user?.role?.replace('_', ' ')}
+                        {user?.role === "admin" && " ⭐"}
                       </p>
                     </div>
                   </div>
@@ -499,9 +499,9 @@ export default function Layout({ children, currentPageName }) {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>
                   <div>My Account</div>
-                  <div className="text-xs font-normal text-gray-500 mt-1">
-                    Role: {userRole}
-                    {userRole.toLowerCase() === "admin" && " (Administrator)"}
+                  <div className="text-xs font-normal text-gray-500 mt-1 capitalize">
+                    Role: {user?.role?.replace('_', ' ')}
+                    {user?.role === "admin" && " (Administrator)"}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
