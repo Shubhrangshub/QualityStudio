@@ -802,7 +802,7 @@ async def upload_file(file: UploadFile = File(...)):
         "fileSize": 0,
         "status": "completed"
     }
-    return await create_item("FileUploadHistory", file_data)
+    return await create_item("file_upload_history", file_data)
 
 # Batch operations
 @app.post("/api/batch/create", tags=["Batch"])
@@ -820,14 +820,23 @@ async def batch_create(collection: str, items: List[Dict[str, Any]]):
 async def get_statistics():
     """Get overall statistics"""
     collections = [
-        "CustomerComplaint", "DefectTicket", "RCARecord", "CAPAPlan",
-        "ProcessRun", "GoldenBatch", "SOP", "DoE", "KnowledgeDocument",
-        "Equipment", "FileUploadHistory", "KPI"
+        ("customer_complaints", "CustomerComplaint"),
+        ("defect_tickets", "DefectTicket"),
+        ("rca_records", "RCARecord"),
+        ("capa_plans", "CAPAPlan"),
+        ("process_runs", "ProcessRun"),
+        ("golden_batches", "GoldenBatch"),
+        ("sops", "SOP"),
+        ("does", "DoE"),
+        ("knowledge_documents", "KnowledgeDocument"),
+        ("equipment", "Equipment"),
+        ("file_upload_history", "FileUploadHistory"),
+        ("kpis", "KPI")
     ]
     stats = {}
-    for coll_name in collections:
+    for coll_name, display_name in collections:
         count = await db[coll_name].count_documents({})
-        stats[coll_name] = count
+        stats[display_name] = count
     return stats
 
 # AI Service Endpoints (mock for now, will be replaced with real AI)
@@ -874,7 +883,7 @@ async def search_knowledge(data: Dict[str, Any]):
     """Semantic knowledge base search"""
     query = data.get("query", "")
     
-    documents = await get_items("KnowledgeDocument", limit=1000)
+    documents = await get_items("knowledge_documents", limit=1000)
     
     results = ai_service_mock.search_knowledge_base(query, documents)
     return results
