@@ -252,17 +252,10 @@ export default function Layout({ children, currentPageName }) {
     // Admin always has access to everything
     if (userRole === 'admin') return true;
     
-    // If no role permissions configured, use legacy role-based filtering
-    if (!rolePermissions) {
-      if (item.roles.includes("all")) return true;
-      const userRoleLower = userRole.toLowerCase();
-      const hasAccess = item.roles.some(role => role.toLowerCase() === userRoleLower);
-      return hasAccess;
-    }
-    
-    // Use role permissions to filter
-    const pageName = item.url.split("?")[0].replace(createPageUrl(""), "").replace("/", "");
-    return rolePermissions.allowedPages?.includes(pageName) || false;
+    // Use role-based filtering with mapped roles
+    if (item.roles.includes("all")) return true;
+    const hasAccess = item.roles.some(role => role === mappedRole);
+    return hasAccess;
   });
 
   // Group navigation by section
