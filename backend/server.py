@@ -387,10 +387,6 @@ async def search_knowledge(data: Dict[str, Any]):
     results = ai_service_mock.search_knowledge_base(query, documents)
     return results
 
-        count = await db[collection_name].count_documents({})
-        stats[entity_name] = count
-    return stats
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
