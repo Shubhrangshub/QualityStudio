@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { 
   FileText, ExternalLink, Loader2, BookOpen, 
   Sparkles, Link as LinkIcon, AlertCircle 
@@ -25,12 +25,12 @@ export default function RelatedDocuments({
     
     try {
       // Get all knowledge documents
-      const allDocs = await base44.entities.KnowledgeDocument.filter({ status: "active" }, "-created_date", 100);
+      const allDocs = await api.entities.KnowledgeDocument.filter({ status: "active" }, "-created_date", 100);
       
       // Get AI suggestions for relevant documents
       const contextDescription = getContextDescription();
       
-      const aiResult = await base44.integrations.Core.InvokeLLM({
+      const aiResult = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze this ${context.type} context and identify which knowledge documents would be most relevant:
 
 CONTEXT:

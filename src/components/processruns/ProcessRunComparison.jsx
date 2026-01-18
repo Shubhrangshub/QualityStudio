@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +169,7 @@ Analyze:
 3. Best practices from the better run
 4. Recommendations for optimization`;
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt,
         response_json_schema: {
           type: "object",

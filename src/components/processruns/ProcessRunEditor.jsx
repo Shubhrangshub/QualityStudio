@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,9 +150,9 @@ export default function ProcessRunEditor({ run, mode, isAdmin, defects = [], onC
       };
 
       if (mode === "create") {
-        await base44.entities.ProcessRun.create(dataToSave);
+        await api.entities.ProcessRun.create(dataToSave);
       } else if (mode === "edit" && run) {
-        await base44.entities.ProcessRun.update(run.id, dataToSave);
+        await api.entities.ProcessRun.update(run.id, dataToSave);
       }
 
       onComplete();

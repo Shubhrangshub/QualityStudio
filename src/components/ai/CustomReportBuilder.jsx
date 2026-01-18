@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +52,7 @@ export default function CustomReportBuilder({
   // Fetch saved SPC analyses for comparative study
   const { data: spcAnalyses = [] } = useQuery({
     queryKey: ['spc-analyses-for-reports'],
-    queryFn: () => base44.entities.SPCAnalysis.list("-analysisDate", 100),
+    queryFn: () => api.entities.SPCAnalysis.list("-analysisDate", 100),
   });
 
   // Local state for Calendar component, which prefers undefined for unselected dates

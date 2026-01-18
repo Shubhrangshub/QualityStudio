@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ export default function DatabaseExport() {
 
   const { data: currentUser } = useQuery({
     queryKey: ['current-user'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => api.auth.me(),
   });
 
   const isAdmin = currentUser?.role?.toLowerCase() === 'admin';
@@ -68,7 +68,7 @@ export default function DatabaseExport() {
       for (const entityName of selectedEntities) {
         try {
           setExportStatus({ type: "info", message: `Fetching ${entityName}...` });
-          const data = await base44.entities[entityName].list("-created_date", 1000);
+          const data = await api.entities[entityName].list("-created_date", 1000);
           exportData.entities[entityName] = data || [];
           totalRecords += (data || []).length;
         } catch (err) {
@@ -122,7 +122,7 @@ export default function DatabaseExport() {
       
       for (const entityName of selectedEntities) {
         try {
-          const data = await base44.entities[entityName].list("-created_date", 1000);
+          const data = await api.entities[entityName].list("-created_date", 1000);
           
           if (!data || data.length === 0) continue;
 

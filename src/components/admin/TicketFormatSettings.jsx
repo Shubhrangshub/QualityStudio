@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Settings, RotateCcw, CheckCircle2, Loader2, AlertTriangle } from "lucide-react";
 
@@ -17,11 +17,11 @@ export default function TicketFormatSettings() {
 
   const { data: counters = [] } = useQuery({
     queryKey: ['ticket-counters'],
-    queryFn: () => base44.entities.TicketCounter.list("-created_date", 100),
+    queryFn: () => api.entities.TicketCounter.list("-created_date", 100),
   });
 
   const deleteCounterMutation = useMutation({
-    mutationFn: (id) => base44.entities.TicketCounter.delete(id),
+    mutationFn: (id) => api.entities.TicketCounter.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ticket-counters'] });
     }
@@ -36,7 +36,7 @@ export default function TicketFormatSettings() {
     try {
       // Delete all counters
       for (const counter of counters) {
-        await base44.entities.TicketCounter.delete(counter.id);
+        await api.entities.TicketCounter.delete(counter.id);
       }
       
       setResetSuccess(true);
@@ -51,7 +51,7 @@ export default function TicketFormatSettings() {
     if (!confirm('Reset this counter to 00001?')) return;
     
     try {
-      await base44.entities.TicketCounter.update(counterId, { lastSequence: 0 });
+      await api.entities.TicketCounter.update(counterId, { lastSequence: 0 });
       queryClient.invalidateQueries({ queryKey: ['ticket-counters'] });
     } catch (error) {
       console.error("Reset error:", error);

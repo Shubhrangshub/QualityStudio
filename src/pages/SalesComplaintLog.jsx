@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,12 +43,12 @@ export default function SalesComplaintLog() {
   const createComplaintMutation = useMutation({
     mutationFn: async (data) => {
       const ticketNum = await generateTicketNumber(data.filmType);
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       
       // Create date in IST
       const istDate = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
       
-      const complaint = await base44.entities.CustomerComplaint.create({
+      const complaint = await api.entities.CustomerComplaint.create({
         ...data,
         ticketNumber: ticketNum,
         loggedBy: user.email,
@@ -89,7 +89,7 @@ export default function SalesComplaintLog() {
     const month = (now.getMonth() + 1).toString().padStart(2, '0');
     const filmCode = filmType === "Window" ? "W" : "P";
 
-    const counters = await base44.entities.ComplaintCounter.filter({
+    const counters = await api.entities.ComplaintCounter.filter({
       year: parseInt('20' + year),
       month: parseInt(month),
       filmType: filmCode
@@ -99,9 +99,9 @@ export default function SalesComplaintLog() {
     if (counters.length > 0) {
       const counter = counters[0];
       sequence = (counter.lastSequence || 0) + 1;
-      await base44.entities.ComplaintCounter.update(counter.id, { lastSequence: sequence });
+      await api.entities.ComplaintCounter.update(counter.id, { lastSequence: sequence });
     } else {
-      await base44.entities.ComplaintCounter.create({
+      await api.entities.ComplaintCounter.create({
         year: parseInt('20' + year),
         month: parseInt(month),
         filmType: filmCode,
@@ -115,7 +115,7 @@ export default function SalesComplaintLog() {
   const notifyQualityHead = async (complaint) => {
     try {
       // Get all admin and Quality Lead users
-      const users = await base44.entities.User.list();
+      const users = await api.entities.User.list();
       const qualityUsers = users.filter(u => 
         u.role === 'admin' || 
         u.customRole === 'Quality Lead' || 
@@ -125,7 +125,7 @@ export default function SalesComplaintLog() {
       // Send email to each quality user
       for (const user of qualityUsers) {
         if (user.email) {
-          await base44.integrations.Core.SendEmail({
+          await api.integrations.Core.SendEmail({
             to: user.email,
             subject: `🚨 New Customer Complaint - QFIR Required: ${complaint.ticketNumber}`,
             body: `
@@ -160,7 +160,7 @@ This is an automated notification from the Quality Management System.
 
     for (const file of files) {
       try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await api.integrations.Core.UploadFile({ file });
         uploadedUrls.push(file_url);
       } catch (error) {
         console.error("Upload error:", error);

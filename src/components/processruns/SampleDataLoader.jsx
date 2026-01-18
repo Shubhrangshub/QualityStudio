@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ export default function SampleDataLoader({ onSuccess, sampleDataCount, showSampl
   const loadSampleData = async () => {
     setLoading(true);
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       const baseDate = new Date('2024-12-01T08:00:00');
       
       // Create 5 sample process runs with varying quality
@@ -80,7 +80,7 @@ export default function SampleDataLoader({ onSuccess, sampleDataCount, showSampl
 
       const createdRuns = [];
       for (const run of sampleRuns) {
-        const created = await base44.entities.ProcessRun.create(run);
+        const created = await api.entities.ProcessRun.create(run);
         createdRuns.push(created);
       }
 
@@ -106,12 +106,12 @@ export default function SampleDataLoader({ onSuccess, sampleDataCount, showSampl
       ];
 
       for (const defect of sampleDefects) {
-        await base44.entities.DefectTicket.create(defect);
+        await api.entities.DefectTicket.create(defect);
       }
 
       // Create golden batch based on best run (98.8% FPY)
       const bestRun = createdRuns[4];
-      await base44.entities.GoldenBatch.create({
+      await api.entities.GoldenBatch.create({
         name: "🌟 SAMPLE Golden Standard - WF-TINT-5MIL",
         description: "Optimal parameters for Window Film Tint 5mil (DEMO DATA)",
         productCode: bestRun.productCode, line: bestRun.line,

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,12 +35,12 @@ export default function RCAStudio() {
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 50),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 50),
   });
 
   const { data: allDefects = [] } = useQuery({
     queryKey: ['defects-for-rca'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 100),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 100),
   });
 
   // Filter defects: only show those without an existing RCA
@@ -54,17 +54,17 @@ export default function RCAStudio() {
   // NEW: Fetch CAPA records for historical insights
   const { data: capas = [] } = useQuery({
     queryKey: ['capas'],
-    queryFn: () => base44.entities.CAPARecord.list("-created_date", 50), // Assuming CAPARecord entity
+    queryFn: () => api.entities.CAPARecord.list("-created_date", 50), // Assuming CAPARecord entity
   });
 
   // NEW: Fetch DoE records for historical insights
   const { data: does = [] } = useQuery({
     queryKey: ['does'],
-    queryFn: () => base44.entities.DoERecord.list("-created_date", 50), // Assuming DoERecord entity
+    queryFn: () => api.entities.DoERecord.list("-created_date", 50), // Assuming DoERecord entity
   });
 
   const createRCAMutation = useMutation({
-    mutationFn: (data) => base44.entities.RCARecord.create(data),
+    mutationFn: (data) => api.entities.RCARecord.create(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rcas'] });
       setCurrentRCA(data);
@@ -73,7 +73,7 @@ export default function RCAStudio() {
   });
 
   const updateRCAMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.RCARecord.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.RCARecord.update(id, data),
     onSuccess: (updatedRCA) => { // updatedRCA is the data returned from the mutation
       queryClient.invalidateQueries({ queryKey: ['rcas'] });
       // Update local state so UI reflects changes immediately
@@ -88,7 +88,7 @@ export default function RCAStudio() {
     const selectedDefect = defects.find(d => d.id === defectId);
     setSelectedDefectForRCA(selectedDefect);
     
-    const user = await base44.auth.me();
+    const user = await api.auth.me();
     createRCAMutation.mutate({
       defectTicketId: defectId,
       analyst: user.email,
@@ -116,7 +116,7 @@ export default function RCAStudio() {
     try {
       const defect = defects.find(d => d.id === currentRCA.defectTicketId);
       
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `You are a quality engineer expert in lamination processes for window films and PPF.
         
         Defect Information:
@@ -328,7 +328,7 @@ export default function RCAStudio() {
                   }}
                   onLink={async (docId) => {
                     // Update the KnowledgeDocument to link it to this RCA
-                    await base44.entities.KnowledgeDocument.update(docId, {
+                    await api.entities.KnowledgeDocument.update(docId, {
                       linkedRCAIds: [...(currentRCA.linkedRCAIds || []), currentRCA.id]
                     });
                     

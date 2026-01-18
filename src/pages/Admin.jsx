@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,78 +35,78 @@ export default function Admin() {
 
   const { data: users = [] } = useQuery({
     queryKey: ['users'],
-    queryFn: () => base44.entities.User.list("-created_date", 100),
+    queryFn: () => api.entities.User.list("-created_date", 100),
   });
 
   const { data: defects = [] } = useQuery({
     queryKey: ['all-defects'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 200),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 200),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['all-rcas'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 100),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 100),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['all-capas'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 100),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 100),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['all-process-runs'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 100),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 100),
   });
 
   const { data: does = [] } = useQuery({
     queryKey: ['all-does'],
-    queryFn: () => base44.entities.DoE.list("-created_date", 100),
+    queryFn: () => api.entities.DoE.list("-created_date", 100),
   });
 
   const { data: complaints = [] } = useQuery({
     queryKey: ['all-complaints'],
-    queryFn: () => base44.entities.CustomerComplaint.list("-dateLogged", 100),
+    queryFn: () => api.entities.CustomerComplaint.list("-dateLogged", 100),
   });
 
   // Fetch ALL entities for export
   const { data: sops = [] } = useQuery({
     queryKey: ['all-sops'],
-    queryFn: () => base44.entities.SOP.list("-created_date", 500),
+    queryFn: () => api.entities.SOP.list("-created_date", 500),
   });
 
   const { data: knowledgeDocs = [] } = useQuery({
     queryKey: ['all-knowledge-docs'],
-    queryFn: () => base44.entities.KnowledgeDocument.list("-created_date", 500),
+    queryFn: () => api.entities.KnowledgeDocument.list("-created_date", 500),
   });
 
   const { data: kpis = [] } = useQuery({
     queryKey: ['all-kpis'],
-    queryFn: () => base44.entities.KPI.list("-recordDate", 500),
+    queryFn: () => api.entities.KPI.list("-recordDate", 500),
   });
 
   const { data: equipment = [] } = useQuery({
     queryKey: ['all-equipment'],
-    queryFn: () => base44.entities.Equipment.list("-created_date", 500),
+    queryFn: () => api.entities.Equipment.list("-created_date", 500),
   });
 
   const { data: materialOptions = [] } = useQuery({
     queryKey: ['all-material-options'],
-    queryFn: () => base44.entities.MaterialOption.list("-created_date", 500),
+    queryFn: () => api.entities.MaterialOption.list("-created_date", 500),
   });
 
   const { data: spcAnalyses = [] } = useQuery({
     queryKey: ['all-spc'],
-    queryFn: () => base44.entities.SPCAnalysis.list("-analysisDate", 500),
+    queryFn: () => api.entities.SPCAnalysis.list("-analysisDate", 500),
   });
 
   const { data: doeAnalyses = [] } = useQuery({
     queryKey: ['all-doe-analyses'],
-    queryFn: () => base44.entities.DoEAnalysis.list("-analysisDate", 500),
+    queryFn: () => api.entities.DoEAnalysis.list("-analysisDate", 500),
   });
 
   const { data: goldenBatches = [] } = useQuery({
     queryKey: ['all-golden-batches'],
-    queryFn: () => base44.entities.GoldenBatch.list("-created_date", 500),
+    queryFn: () => api.entities.GoldenBatch.list("-created_date", 500),
   });
 
   const queryClient = useQueryClient();
@@ -175,7 +175,7 @@ export default function Admin() {
           step3: "Set up your backend (Node.js + PostgreSQL recommended)",
           step4_schemas: "Use the entity JSON files from the ZIP (entities/*.json) to create database tables",
           step5_data: "Use the 'data' section from this file to insert all records",
-          step6: "Replace base44.entities.* API calls with your own API endpoints",
+          step6: "Replace api.entities.* API calls with your own API endpoints",
           step7: "Deploy frontend code to your server",
           
           databaseSetup: {
@@ -187,7 +187,7 @@ export default function Admin() {
           backendFramework: {
             recommended: "Node.js + Express + Sequelize/TypeORM",
             alternative: "Python Django/FastAPI, Java Spring Boot",
-            note: "Implement CRUD endpoints matching base44.entities.* API structure"
+            note: "Implement CRUD endpoints matching api.entities.* API structure"
           },
           
           authentication: {
@@ -225,7 +225,7 @@ export default function Admin() {
   };
 
   const updateUserRoleMutation = useMutation({
-    mutationFn: ({ userId, customRole }) => base44.entities.User.update(userId, { customRole }),
+    mutationFn: ({ userId, customRole }) => api.entities.User.update(userId, { customRole }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
       setEditingUser(null);
@@ -244,7 +244,7 @@ export default function Admin() {
 
   // Delete mutations
   const deleteDefectMutation = useMutation({
-    mutationFn: (id) => base44.entities.DefectTicket.delete(id),
+    mutationFn: (id) => api.entities.DefectTicket.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-defects'] });
       setDeleteResult({ success: true, message: "Defect deleted successfully" });
@@ -255,7 +255,7 @@ export default function Admin() {
   });
 
   const deleteRCAMutation = useMutation({
-    mutationFn: (id) => base44.entities.RCARecord.delete(id),
+    mutationFn: (id) => api.entities.RCARecord.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-rcas'] });
       setDeleteResult({ success: true, message: "RCA deleted successfully" });
@@ -266,7 +266,7 @@ export default function Admin() {
   });
 
   const deleteCAPAMutation = useMutation({
-    mutationFn: (id) => base44.entities.CAPAPlan.delete(id),
+    mutationFn: (id) => api.entities.CAPAPlan.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-capas'] });
       setDeleteResult({ success: true, message: "CAPA deleted successfully" });
@@ -277,7 +277,7 @@ export default function Admin() {
   });
 
   const deleteProcessRunMutation = useMutation({
-    mutationFn: (id) => base44.entities.ProcessRun.delete(id),
+    mutationFn: (id) => api.entities.ProcessRun.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-process-runs'] });
       setDeleteResult({ success: true, message: "Process run deleted successfully" });
@@ -288,7 +288,7 @@ export default function Admin() {
   });
 
   const deleteDoEMutation = useMutation({
-    mutationFn: (id) => base44.entities.DoE.delete(id),
+    mutationFn: (id) => api.entities.DoE.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-does'] });
       setDeleteResult({ success: true, message: "DoE study deleted successfully" });
@@ -299,7 +299,7 @@ export default function Admin() {
   });
 
   const deleteComplaintMutation = useMutation({
-    mutationFn: (id) => base44.entities.CustomerComplaint.delete(id),
+    mutationFn: (id) => api.entities.CustomerComplaint.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['all-complaints'] });
       setDeleteResult({ success: true, message: "Complaint deleted successfully" });
@@ -1121,7 +1121,7 @@ export default function Admin() {
                       3. <strong>Setup Database:</strong> PostgreSQL/MySQL - use schemas to create tables<br />
                       4. <strong>Import Data:</strong> Use data section to populate tables<br />
                       5. <strong>Build API:</strong> Node.js/Python - implement CRUD endpoints<br />
-                      6. <strong>Connect:</strong> Replace base44.entities.* calls with your API<br />
+                      6. <strong>Connect:</strong> Replace api.entities.* calls with your API<br />
                       <br />
                       <strong>Detailed instructions included in the JSON export file!</strong>
                     </AlertDescription>

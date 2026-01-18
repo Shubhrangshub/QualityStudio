@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ export default function KnowledgeSearch() {
     setSearching(true);
 
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Search and provide comprehensive information about: ${searchQuery}
         
         For lamination processes, window films, or PPF manufacturing topics, provide:
@@ -37,7 +37,7 @@ export default function KnowledgeSearch() {
       setResults(result);
 
       // Get recommended articles
-      const articles = await base44.integrations.Core.InvokeLLM({
+      const articles = await api.integrations.Core.InvokeLLM({
         prompt: `Suggest 5 relevant technical articles, research papers, or industry resources about: ${searchQuery}. Focus on lamination, film coating, adhesive technology, or quality control.`,
         add_context_from_internet: true,
         response_json_schema: {

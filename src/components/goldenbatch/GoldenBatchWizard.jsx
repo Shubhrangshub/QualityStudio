@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,10 +141,10 @@ export default function GoldenBatchWizard({ processRuns, uniqueProducts, uniqueL
   const handleSubmit = async () => {
     setSaving(true);
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       
       // Check for duplicates
-      const existingBatches = await base44.entities.GoldenBatch.filter({
+      const existingBatches = await api.entities.GoldenBatch.filter({
         productCode: formData.productCode,
         line: formData.line,
         status: "active"
@@ -170,7 +170,7 @@ export default function GoldenBatchWizard({ processRuns, uniqueProducts, uniqueL
         finalTolerances[field.key] = formData.tolerances[field.key] || 5;
       });
 
-      await base44.entities.GoldenBatch.create({
+      await api.entities.GoldenBatch.create({
         ...formData,
         tolerances: finalTolerances,
         status: "active",

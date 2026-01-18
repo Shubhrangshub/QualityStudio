@@ -10,7 +10,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area 
 } from 'recharts';
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 
 export default function MaintenanceTrendAnalysis({ equipment, processRuns, defects, selectedLine }) {
   const [analyzing, setAnalyzing] = useState(false);
@@ -76,7 +76,7 @@ export default function MaintenanceTrendAnalysis({ equipment, processRuns, defec
     setAnalyzing(true);
     
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze MAINTENANCE TRENDS and EQUIPMENT FAILURES for lamination equipment.
 
 EQUIPMENT DATA (${filteredEquipment.length} items):

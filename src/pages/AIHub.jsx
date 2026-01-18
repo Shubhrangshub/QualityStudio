@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,32 +55,32 @@ export default function AIHub() {
 
   const { data: defects = [] } = useQuery({
     queryKey: ['recent-defects'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 50),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 50),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['recent-runs'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 50),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 50),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas-ai'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 30),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 30),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas-ai'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 30),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 30),
   });
 
   const { data: does = [] } = useQuery({
     queryKey: ['does-ai'],
-    queryFn: () => base44.entities.DoE.list("-created_date", 30),
+    queryFn: () => api.entities.DoE.list("-created_date", 30),
   });
 
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment-pm'],
-    queryFn: () => base44.entities.Equipment.list("-created_date", 50),
+    queryFn: () => api.entities.Equipment.list("-created_date", 50),
   });
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function AIHub() {
       const defectsToAnalyze = defects.filter(d => selectedDefectIds.includes(d.id));
       const processRunsToAnalyze = processRuns.filter(r => selectedProcessRunIds.includes(r.id));
       
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Perform comprehensive root cause analysis on:
 
 DEFECTS: ${JSON.stringify(defectsToAnalyze.map(d => ({ 
@@ -178,7 +178,7 @@ Provide detailed analysis with:
     try {
       const selectedDefects = defects.filter(d => selectedDefectsForTraining.includes(d.id));
       const selectedSOPs = await Promise.all(
-        selectedSOPsForTraining.map(id => base44.entities.SOP.filter({ id }))
+        selectedSOPsForTraining.map(id => api.entities.SOP.filter({ id }))
       ).then(results => results.flat());
 
       const contextInfo = `
@@ -186,7 +186,7 @@ SELECTED DEFECTS FOR TRAINING: ${JSON.stringify(selectedDefects.map(d => ({ type
 RELATED SOPs: ${JSON.stringify(selectedSOPs.map(s => ({ title: s.title, processStep: s.processStep })))}
       `.trim();
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Create a comprehensive training module for: ${trainingTopic}
 
 ${contextInfo}
@@ -223,7 +223,7 @@ RELATED DEFECTS: ${JSON.stringify(selectedDefects.map(d => ({ type: d.defectType
 RELATED RCA FINDINGS: ${JSON.stringify(selectedRCAs.map(r => ({ rootCauses: r.rootCauses?.map(rc => rc.cause) })))}
       `.trim();
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Create a detailed SOP for: ${sopPrompt}
 
 ${contextInfo}
@@ -260,7 +260,7 @@ PROCESS RUN DATA: ${JSON.stringify(selectedRuns.map(r => ({ line: r.line, lineSp
 RECURRING DEFECTS: ${JSON.stringify(selectedDefects.map(d => ({ type: d.defectType, frequency: 1 })))}
       `.trim();
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Suggest process automation opportunities for: ${processDescription}
 
 ${contextInfo}
@@ -310,7 +310,7 @@ Include automation opportunities, required IoT sensors, estimated ROI, and imple
         closed: capas.filter(c => c.approvalState === 'closed').length
       };
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Generate a comprehensive quality report.
 
 REPORT CONFIGURATION:
@@ -411,7 +411,7 @@ Generate a detailed report with:
   const runPredictiveMaintenanceAnalysis = async () => {
     setLoading(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze equipment health for predictive maintenance based on ${equipment.length} equipment items.`,
         response_json_schema: {
           type: "object",
@@ -1292,8 +1292,8 @@ ${sopContent.safetyPrecautions?.map(s => `- ${s}`).join('\n') || 'N/A'}
                           className="bg-green-600 hover:bg-green-700"
                           onClick={async () => {
                             try {
-                              const user = await base44.auth.me();
-                              await base44.entities.SOP.create({
+                              const user = await api.auth.me();
+                              await api.entities.SOP.create({
                                 title: sopContent.title,
                                 sopNumber: `SOP-${Date.now().toString().slice(-6)}`,
                                 version: "1.0",

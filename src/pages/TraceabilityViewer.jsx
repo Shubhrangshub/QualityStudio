@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,22 +18,22 @@ export default function TraceabilityViewer() {
 
   const { data: allComplaints = [] } = useQuery({
     queryKey: ['complaints-traceability'],
-    queryFn: () => base44.entities.CustomerComplaint.list("-dateLogged", 200),
+    queryFn: () => api.entities.CustomerComplaint.list("-dateLogged", 200),
   });
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-traceability'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 200),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 200),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas-traceability'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 100),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 100),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas-traceability'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 100),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 100),
   });
 
   const handleSearch = () => {

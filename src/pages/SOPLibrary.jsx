@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ export default function SOPLibrary() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await api.auth.me();
         setCurrentUser(user);
       } catch (error) {
         console.error("Error loading user:", error);
@@ -61,31 +61,31 @@ export default function SOPLibrary() {
 
   const { data: sops = [], isLoading } = useQuery({
     queryKey: ['sops'],
-    queryFn: () => base44.entities.SOP.list("-created_date", 100),
+    queryFn: () => api.entities.SOP.list("-created_date", 100),
   });
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-for-sop'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 50),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 50),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['runs-for-sop'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 50),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 50),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas-for-sop'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 50),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 50),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas-for-sop'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 50),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 50),
   });
 
   const createSOPMutation = useMutation({
-    mutationFn: (data) => base44.entities.SOP.create(data),
+    mutationFn: (data) => api.entities.SOP.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sops'] });
       setActiveTab("list");
@@ -99,7 +99,7 @@ export default function SOPLibrary() {
   });
 
   const updateSOPMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.SOP.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.SOP.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sops'] });
       setEditingSOP(null);
@@ -107,7 +107,7 @@ export default function SOPLibrary() {
   });
 
   const deleteSOPMutation = useMutation({
-    mutationFn: (id) => base44.entities.SOP.delete(id),
+    mutationFn: (id) => api.entities.SOP.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sops'] });
     }
@@ -129,7 +129,7 @@ export default function SOPLibrary() {
     setLoadingSuggestions(true);
     
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze this SOP request: "${aiPrompt}"
 
 Available historical data:
@@ -243,7 +243,7 @@ Return top 3 suggestions per category.`,
         }
       }
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Create detailed SOP for lamination process: ${aiPrompt}${contextInfo}
 
 Generate comprehensive SOP with:
@@ -316,7 +316,7 @@ Reference linked data to make SOP specific and practical.`,
     if (!generatedSOP) return;
 
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       
       await createSOPMutation.mutateAsync({
         title: generatedSOP.title,
@@ -440,7 +440,7 @@ Reference linked data to make SOP specific and practical.`,
 
   const saveVersionHistory = async (sop, changeDescription) => {
     try {
-      await base44.entities.SOPVersion.create({
+      await api.entities.SOPVersion.create({
         sopId: sop.id,
         versionNumber: sop.version,
         title: sop.title,
@@ -485,7 +485,7 @@ Reference linked data to make SOP specific and practical.`,
 
   const loadVersionHistory = async (sopId) => {
     try {
-      const versions = await base44.entities.SOPVersion.filter({ sopId }, "-created_date", 50);
+      const versions = await api.entities.SOPVersion.filter({ sopId }, "-created_date", 50);
       setSopVersions(versions);
       setViewingHistory(sopId);
     } catch (error) {
@@ -548,7 +548,7 @@ Reference linked data to make SOP specific and practical.`,
       // Save current version before regenerating
       await saveVersionHistory(regeneratingSOP, `AI Regeneration: ${regeneratePrompt}`);
       
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Regenerate the following SOP with these modifications: ${regeneratePrompt}
 
 Original SOP:

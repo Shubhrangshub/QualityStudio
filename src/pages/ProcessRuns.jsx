@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,7 @@ export default function ProcessRuns() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await api.auth.me();
         setCurrentUser(user);
       } catch (error) {
         console.error("Error loading user:", error);
@@ -54,7 +54,7 @@ export default function ProcessRuns() {
 
   const { data: allProcessRuns = [], isLoading } = useQuery({
     queryKey: ['process-runs'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 200),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 200),
   });
   
   const processRuns = showSampleData 
@@ -63,7 +63,7 @@ export default function ProcessRuns() {
 
   const { data: allDefects = [] } = useQuery({
     queryKey: ['defects-for-runs'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 500),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 500),
   });
   
   const defects = showSampleData 
@@ -72,7 +72,7 @@ export default function ProcessRuns() {
 
   const { data: allGoldenBatches = [] } = useQuery({
     queryKey: ['golden-batches-for-runs'],
-    queryFn: () => base44.entities.GoldenBatch.filter({ status: "active" }, "-created_date", 50),
+    queryFn: () => api.entities.GoldenBatch.filter({ status: "active" }, "-created_date", 50),
   });
   
   const goldenBatches = showSampleData 
@@ -81,7 +81,7 @@ export default function ProcessRuns() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const result = await base44.entities.ProcessRun.delete(id);
+      const result = await api.entities.ProcessRun.delete(id);
       console.log('Delete result:', result);
       return result;
     },
@@ -103,7 +103,7 @@ export default function ProcessRuns() {
       
       for (const id of ids) {
         try {
-          await base44.entities.ProcessRun.delete(id);
+          await api.entities.ProcessRun.delete(id);
           deleted++;
           console.log(`Deleted ${id}`);
         } catch (error) {
@@ -171,9 +171,9 @@ export default function ProcessRuns() {
     setUploadResult(null);
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await api.integrations.Core.UploadFile({ file });
 
-      const extractResult = await base44.integrations.Core.ExtractDataFromUploadedFile({
+      const extractResult = await api.integrations.Core.ExtractDataFromUploadedFile({
         file_url,
         json_schema: {
           type: "object",
@@ -206,7 +206,7 @@ export default function ProcessRuns() {
 
         // Create process runs
         for (const run of runs) {
-          await base44.entities.ProcessRun.create({
+          await api.entities.ProcessRun.create({
             ...run,
             dateTimeStart: run.dateTimeStart || run.timestamp || run.date || new Date().toISOString(),
             dateTimeEnd: run.dateTimeEnd || new Date().toISOString(),

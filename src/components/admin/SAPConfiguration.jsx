@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Settings, CheckCircle2, Loader2, Database, Lock, Globe } from "lucide-react";
 
@@ -24,7 +24,7 @@ export default function SAPConfiguration() {
 
   const { data: sapConfigs = [] } = useQuery({
     queryKey: ['sap-configs'],
-    queryFn: () => base44.entities.SAPConfig.list("-created_date", 50),
+    queryFn: () => api.entities.SAPConfig.list("-created_date", 50),
   });
 
   React.useEffect(() => {
@@ -39,14 +39,14 @@ export default function SAPConfiguration() {
 
   const saveConfigMutation = useMutation({
     mutationFn: async (data) => {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       const updates = [];
 
       for (const [key, value] of Object.entries(data)) {
         const existing = sapConfigs.find(c => c.configKey === key);
         if (existing) {
           updates.push(
-            base44.entities.SAPConfig.update(existing.id, {
+            api.entities.SAPConfig.update(existing.id, {
               configValue: value,
               lastUpdated: new Date().toISOString(),
               updatedBy: user.email
@@ -54,7 +54,7 @@ export default function SAPConfiguration() {
           );
         } else {
           updates.push(
-            base44.entities.SAPConfig.create({
+            api.entities.SAPConfig.create({
               configKey: key,
               configValue: value,
               isActive: true,

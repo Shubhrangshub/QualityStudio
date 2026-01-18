@@ -10,7 +10,7 @@ import {
   AlertTriangle, Sparkles, Loader2, Download, CheckCircle2, 
   Target, Shield, Eye, Zap, TrendingDown
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 
 export default function FMEAAssessment({ capa, defect, rca, onUpdate }) {
   const [fmea, setFMEA] = useState(capa.fmea || {
@@ -55,7 +55,7 @@ export default function FMEAAssessment({ capa, defect, rca, onUpdate }) {
   const runAIAnalysis = async () => {
     setAnalyzing(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `You are an FMEA expert analyzing a manufacturing defect for a lamination/film production process.
 
 DEFECT CONTEXT:

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function SPCCapability() {
   const { data: uploadHistory = [] } = useQuery({
     queryKey: ['upload-history-spc'],
     queryFn: async () => {
-      const history = await base44.entities.FileUploadHistory.filter({ fileType: 'process_run' }, "-created_date", 100);
+      const history = await api.entities.FileUploadHistory.filter({ fileType: 'process_run' }, "-created_date", 100);
       console.log('📋 SPC fetched', history.length, 'upload history records');
       console.log('📋 Upload history IDs:', history.map(h => ({ id: h.id?.slice(0, 12), fileName: h.fileName })));
       return history;
@@ -47,7 +47,7 @@ export default function SPCCapability() {
   const { data: allProcessRuns = [] } = useQuery({
     queryKey: ['runs-spc'],
     queryFn: async () => {
-      const runs = await base44.entities.ProcessRun.list("-dateTimeStart", 500);
+      const runs = await api.entities.ProcessRun.list("-dateTimeStart", 500);
       console.log('📊 SPC fetched', runs.length, 'ProcessRuns');
       console.log('📊 Sample runs with uploadHistoryId:', runs.slice(0, 5).map(r => ({
         id: r.id?.slice(0, 8),
@@ -63,13 +63,13 @@ export default function SPCCapability() {
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-spc'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 50),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 50),
   });
 
   const queryClient = useQueryClient();
 
   const saveSPCAnalysisMutation = useMutation({
-    mutationFn: (data) => base44.entities.SPCAnalysis.create(data),
+    mutationFn: (data) => api.entities.SPCAnalysis.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['spc-history'] });
     }
@@ -1192,7 +1192,7 @@ export default function SPCCapability() {
                               .filter(([k, v]) => v?.enabled && k !== 'line')
                               .map(([k, v]) => ({ param: k, value: v.value }));
 
-                            const result = await base44.integrations.Core.InvokeLLM({
+                            const result = await api.integrations.Core.InvokeLLM({
                               prompt: `Simulate process outcome for lamination with these parameters:
 ${enabledParams.map(p => `- ${p.param}: ${p.value}`).join('\n')}
 Line: ${simulationParams.line || 'All'}
@@ -1335,7 +1335,7 @@ Based on lamination process knowledge, predict:
                         </Button>
                         <Button
                           onClick={async () => {
-                            const user = await base44.auth.me();
+                            const user = await api.auth.me();
                             saveSPCAnalysisMutation.mutate({
                               analysisDate: new Date().toISOString(),
                               line: selectedLine,
@@ -1412,7 +1412,7 @@ Based on lamination process knowledge, predict:
                             ? filteredRuns.filter(r => selectedRunIds.includes(r.id))
                             : filteredRuns;
 
-                          const result = await base44.integrations.Core.InvokeLLM({
+                          const result = await api.integrations.Core.InvokeLLM({
                             prompt: `Perform a professional SPC analysis for lamination process parameter "${selectedParameter}":
 
 PROCESS DATA (${runsToAnalyze.length} runs):
@@ -1772,7 +1772,7 @@ Provide:
                         </Button>
                         <Button
                           onClick={async () => {
-                            const user = await base44.auth.me();
+                            const user = await api.auth.me();
                             saveSPCAnalysisMutation.mutate({
                               analysisDate: new Date().toISOString(),
                               line: selectedLine,

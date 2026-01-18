@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import {
   Sparkles, Loader2, TrendingUp, AlertTriangle, CheckCircle2,
   Target, Clock, Zap, BarChart3, Lightbulb, ArrowRight
@@ -18,10 +18,10 @@ export default function CAPAEffectivenessPrediction({ capa, defect, rca, onUpdat
     try {
       // Fetch historical data for AI context
       const [allCAPAs, allDefects, spcAnalyses, doeAnalyses] = await Promise.all([
-        base44.entities.CAPAPlan.list("-created_date", 100),
-        base44.entities.DefectTicket.list("-created_date", 200),
-        base44.entities.SPCAnalysis.list("-analysisDate", 50),
-        base44.entities.DoEAnalysis.list("-analysisDate", 30)
+        api.entities.CAPAPlan.list("-created_date", 100),
+        api.entities.DefectTicket.list("-created_date", 200),
+        api.entities.SPCAnalysis.list("-analysisDate", 50),
+        api.entities.DoEAnalysis.list("-analysisDate", 30)
       ]);
 
       // Calculate historical effectiveness
@@ -36,7 +36,7 @@ export default function CAPAEffectivenessPrediction({ capa, defect, rca, onUpdat
         return capaDefect?.defectType === defect?.defectType;
       });
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `You are an AI quality expert predicting the effectiveness of proposed CAPA actions.
 
 CURRENT CAPA PLAN:

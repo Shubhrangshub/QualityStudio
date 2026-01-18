@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,27 +44,27 @@ export default function DoEDesigner() {
 
   const { data: does = [] } = useQuery({
     queryKey: ['does'],
-    queryFn: () => base44.entities.DoE.list("-created_date", 50),
+    queryFn: () => api.entities.DoE.list("-created_date", 50),
   });
 
   // NEW: Load defects, products, lines for context
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-for-doe'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 50),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 50),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['runs-for-doe'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 50),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 50),
   });
 
   const { data: doeAnalyses = [] } = useQuery({
     queryKey: ['doe-analyses'],
-    queryFn: () => base44.entities.DoEAnalysis.list("-analysisDate", 50),
+    queryFn: () => api.entities.DoEAnalysis.list("-analysisDate", 50),
   });
 
   const saveDoEAnalysisMutation = useMutation({
-    mutationFn: (data) => base44.entities.DoEAnalysis.create(data),
+    mutationFn: (data) => api.entities.DoEAnalysis.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['doe-analyses'] });
     }
@@ -74,7 +74,7 @@ export default function DoEDesigner() {
   const lines = [...new Set(processRuns.map(r => r.line).filter(Boolean))];
 
   const createDoEMutation = useMutation({
-    mutationFn: (data) => base44.entities.DoE.create(data),
+    mutationFn: (data) => api.entities.DoE.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['does'] });
       setActiveTab("list");
@@ -82,7 +82,7 @@ export default function DoEDesigner() {
   });
 
   const updateDoEMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.DoE.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.DoE.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['does'] });
     }
@@ -105,7 +105,7 @@ export default function DoEDesigner() {
         }
       }
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Design a comprehensive DoE (Design of Experiments) for: ${newDoE.objective}${contextInfo}
 
 Process: Window film/PPF lamination
@@ -170,7 +170,7 @@ Be specific to lamination process parameters.`,
   };
 
   const handleCreateDoE = async () => {
-    const user = await base44.auth.me();
+    const user = await api.auth.me();
 
     createDoEMutation.mutate({
       ...newDoE,
@@ -589,7 +589,7 @@ Be specific to lamination process parameters.`,
                               return;
                             }
 
-                            const result = await base44.integrations.Core.InvokeLLM({
+                            const result = await api.integrations.Core.InvokeLLM({
                               prompt: `Based on ${runsToAnalyze.length} selected process runs, design an optimization DoE:
 
 PARAMETER RANGES:
@@ -797,7 +797,7 @@ Design a focused experiment using actual parameter ranges.`,
                             .filter(([k, v]) => v?.enabled && k !== 'line')
                             .map(([k, v]) => `${k}: ${v.value} ${v.unit || ''}`);
 
-                          const result = await base44.integrations.Core.InvokeLLM({
+                          const result = await api.integrations.Core.InvokeLLM({
                             prompt: `Simulate lamination process with these parameters:
 Line: ${simulationParams.line || 'Not specified'}
 ${enabledParams.join('\n')}
@@ -1310,7 +1310,7 @@ Predict:
                             }
                           });
                           // Save final result to DoEAnalysis
-                          const user = await base44.auth.me();
+                          const user = await api.auth.me();
                           saveDoEAnalysisMutation.mutate({
                             doeId: selectedDoE.id,
                             analysisDate: new Date().toISOString(),
@@ -1345,7 +1345,7 @@ Predict:
                             }
                           });
                           // Save final result to DoEAnalysis
-                          const user = await base44.auth.me();
+                          const user = await api.auth.me();
                           saveDoEAnalysisMutation.mutate({
                             doeId: selectedDoE.id,
                             analysisDate: new Date().toISOString(),
@@ -1423,7 +1423,7 @@ Predict:
                             setAnalyzingDoE(true);
                             try {
                               const completedRuns = selectedDoE.runsTable?.filter(r => r.completed) || [];
-                              const result = await base44.integrations.Core.InvokeLLM({
+                              const result = await api.integrations.Core.InvokeLLM({
                                 prompt: `Analyze this DoE experiment:
 
 OBJECTIVE: ${selectedDoE.objective}
@@ -1466,7 +1466,7 @@ Provide:
                               });
 
                               // Also save to DoEAnalysis entity for historical tracking
-                              const user = await base44.auth.me();
+                              const user = await api.auth.me();
                               saveDoEAnalysisMutation.mutate({
                                 doeId: selectedDoE.id,
                                 analysisDate: new Date().toISOString(),

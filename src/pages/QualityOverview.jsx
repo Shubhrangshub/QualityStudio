@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,32 +33,32 @@ export default function QualityOverview() {
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-overview'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 100),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 100),
   });
 
   const { data: kpis = [] } = useQuery({
     queryKey: ['kpis-overview'],
-    queryFn: () => base44.entities.KPI.list("-recordDate", 50),
+    queryFn: () => api.entities.KPI.list("-recordDate", 50),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['runs-overview'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 100),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 100),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas-overview'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 50),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 50),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas-overview'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 50),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 50),
   });
 
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment-overview'],
-    queryFn: () => base44.entities.Equipment.list("-created_date", 50),
+    queryFn: () => api.entities.Equipment.list("-created_date", 50),
   });
 
   // Extract unique values
@@ -167,7 +167,7 @@ export default function QualityOverview() {
     setAnalyzing(true);
 
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Perform ANOMALY DETECTION on lamination process parameters.
 
 PROCESS RUN DATA (last ${filteredRuns.length} runs):

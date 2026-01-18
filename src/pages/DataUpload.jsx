@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -216,7 +216,7 @@ export default function DataUpload() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await api.auth.me();
         setCurrentUser(user);
       } catch (error) {
         console.error("Error loading user:", error);
@@ -228,7 +228,7 @@ export default function DataUpload() {
   const isAdmin = currentUser?.role?.toLowerCase() === 'admin';
 
   const deleteHistoryMutation = useMutation({
-    mutationFn: (id) => base44.entities.FileUploadHistory.delete(id),
+    mutationFn: (id) => api.entities.FileUploadHistory.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['upload-history'] });
     }
@@ -242,7 +242,7 @@ export default function DataUpload() {
       
       for (const id of ids) {
         try {
-          await base44.entities.ProcessRun.delete(id);
+          await api.entities.ProcessRun.delete(id);
           deleted++;
           console.log(`Deleted ${id}`);
         } catch (error) {
@@ -267,7 +267,7 @@ export default function DataUpload() {
   });
 
   const deleteKnowledgeDocMutation = useMutation({
-    mutationFn: (id) => base44.entities.KnowledgeDocument.delete(id),
+    mutationFn: (id) => api.entities.KnowledgeDocument.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['knowledge-docs'] });
     }
@@ -275,27 +275,27 @@ export default function DataUpload() {
 
   const { data: knowledgeDocs = [] } = useQuery({
     queryKey: ['knowledge-docs'],
-    queryFn: () => base44.entities.KnowledgeDocument.list("-created_date", 50),
+    queryFn: () => api.entities.KnowledgeDocument.list("-created_date", 50),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['processRuns'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 200),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 200),
   });
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-upload'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 200),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 200),
   });
 
   const { data: uploadHistory = [] } = useQuery({
     queryKey: ['upload-history'],
-    queryFn: () => base44.entities.FileUploadHistory.list("-created_date", 20),
+    queryFn: () => api.entities.FileUploadHistory.list("-created_date", 20),
   });
 
   const { data: anomalyNotifications = [] } = useQuery({
     queryKey: ['anomaly-notifications'],
-    queryFn: () => base44.entities.AnomalyNotification.filter({ dismissed: false }, "-created_date", 10),
+    queryFn: () => api.entities.AnomalyNotification.filter({ dismissed: false }, "-created_date", 10),
   });
 
   const handleProcessDataUpload = async (file) => {
@@ -305,7 +305,7 @@ export default function DataUpload() {
     setPendingUpload(null);
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await api.integrations.Core.UploadFile({ file });
       const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
       let runs = [];
@@ -360,7 +360,7 @@ export default function DataUpload() {
         }
       } else if (isExcel) {
         // Enhanced Excel extraction with explicit instructions
-        const excelData = await base44.integrations.Core.InvokeLLM({
+        const excelData = await api.integrations.Core.InvokeLLM({
           prompt: `You are extracting process manufacturing data from an Excel file.
 
       CRITICAL INSTRUCTIONS:
@@ -440,13 +440,13 @@ export default function DataUpload() {
     
     setUploading(true);
     const runs = pendingUpload.rawData;
-    const user = await base44.auth.me();
+    const user = await api.auth.me();
     
     try {
       // Save to FileUploadHistory with full data, analysis, and AI summary
       const finalFileName = customFileName.trim() || pendingUpload.fileName;
       
-      const historyRecord = await base44.entities.FileUploadHistory.create({
+      const historyRecord = await api.entities.FileUploadHistory.create({
         fileName: finalFileName,
         fileType: 'process_run',
         fileUrl: pendingUpload.fileUrl,
@@ -482,7 +482,7 @@ export default function DataUpload() {
         // If linked mode - save uploaded data as sensorsRaw for AI analysis
         if (uploadMode === "linked" && selectedProcessRunId && runs.length > 0) {
           const existingRun = processRuns.find(r => r.id === selectedProcessRunId);
-          await base44.entities.ProcessRun.update(selectedProcessRunId, {
+          await api.entities.ProcessRun.update(selectedProcessRunId, {
             sensorsRaw: {
               uploadedData: runs,
               uploadedAt: new Date().toISOString(),
@@ -544,7 +544,7 @@ export default function DataUpload() {
           console.log('🚀 Creating ProcessRun with uploadHistoryId:', historyRecord.id);
           console.log('📦 ProcessRun data:', JSON.stringify(processRunData, null, 2));
           
-          const processRun = await base44.entities.ProcessRun.create(processRunData);
+          const processRun = await api.entities.ProcessRun.create(processRunData);
           
           const duration = ((Date.now() - startTime) / 1000).toFixed(1);
           
@@ -569,7 +569,7 @@ export default function DataUpload() {
         });
       } else if (destination === "knowledge_base") {
         // Save as knowledge document for AI universal intelligence - NO process runs created
-        await base44.entities.KnowledgeDocument.create({
+        await api.entities.KnowledgeDocument.create({
           title: `Process Data - ${pendingUpload.fileName}`,
           documentType: 'technical_paper',
           fileUrl: pendingUpload.fileUrl,
@@ -623,7 +623,7 @@ export default function DataUpload() {
     setDefectAiInsights(null);
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await api.integrations.Core.UploadFile({ file });
       const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
 
       let contextInfo = "";
@@ -668,7 +668,7 @@ export default function DataUpload() {
         }
       } else if (isExcel) {
         // Use LLM to read Excel file
-        const excelData = await base44.integrations.Core.InvokeLLM({
+        const excelData = await api.integrations.Core.InvokeLLM({
           prompt: `Extract ALL defect data from this Excel file. Each row should include: dateTime, line, productCode, defectType, severity, operator, webPositionMD, webPositionCD. Return format: {"defects": [array of defect objects]}`,
           file_urls: [file_url],
           response_json_schema: {
@@ -708,7 +708,7 @@ export default function DataUpload() {
       
       if (uploadMode === "linked" && selectedDefectId && defectsData.length > 0) {
         const existingDefect = defects.find(d => d.id === selectedDefectId);
-        await base44.entities.DefectTicket.update(selectedDefectId, {
+        await api.entities.DefectTicket.update(selectedDefectId, {
           ...existingDefect,
           ...defectsData[0],
           linkedUploadUrl: file_url
@@ -723,7 +723,7 @@ export default function DataUpload() {
         await generateStructuredSummary(defectsData, file.name, 'defect', file_url);
       } else {
         for (const defect of defectsData) {
-          await base44.entities.DefectTicket.create({
+          await api.entities.DefectTicket.create({
             ...defect,
             status: "open"
           });
@@ -775,7 +775,7 @@ DATA COLUMNS FOUND: ${runs.length > 0 ? Object.keys(runs[0]).join(', ') : 'None'
 TOTAL RECORDS: ${runs.length}
 ` : 'No data extracted from file';
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze this ACTUAL uploaded lamination process data for window films/PPF manufacturing.${contextInfo}${parameterContext}
 
 ${dataDescription}
@@ -854,7 +854,7 @@ ${uploadMode === "linked" ? "Focus on the specific context and be very detailed 
     if (!data || data.length === 0) return;
     
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       const headers = Object.keys(data[0]);
       
       // Process each numeric parameter
@@ -863,7 +863,7 @@ ${uploadMode === "linked" ? "Focus on the specific context and be very detailed 
         if (values.length === 0) continue;
         
         // Fetch existing cumulative stats for this parameter
-        const existingStats = await base44.entities.StatisticalSummary.filter({ 
+        const existingStats = await api.entities.StatisticalSummary.filter({ 
           parameterName: param, 
           fileType: 'process_run' 
         });
@@ -897,7 +897,7 @@ ${uploadMode === "linked" ? "Focus on the specific context and be very detailed 
             median: currentMean // Simplified
           };
           
-          await base44.entities.StatisticalSummary.update(stat.id, {
+          await api.entities.StatisticalSummary.update(stat.id, {
             cumulativeStats: updatedStats,
             lastValue: currentMean,
             anomalyDetected,
@@ -914,7 +914,7 @@ ${uploadMode === "linked" ? "Focus on the specific context and be very detailed 
           });
         } else {
           // Create new cumulative stats
-          await base44.entities.StatisticalSummary.create({
+          await api.entities.StatisticalSummary.create({
             parameterName: param,
             fileType: 'process_run',
             cumulativeStats: {
@@ -938,7 +938,7 @@ ${uploadMode === "linked" ? "Focus on the specific context and be very detailed 
         
         // Create notification if anomaly detected
         if (anomalyDetected) {
-          const notification = await base44.entities.AnomalyNotification.create({
+          const notification = await api.entities.AnomalyNotification.create({
             title: `Anomaly Detected: ${param}`,
             message: anomalyDetails,
             parameterName: param,
@@ -950,9 +950,9 @@ ${uploadMode === "linked" ? "Focus on the specific context and be very detailed 
           });
           
           // Send email to all users
-          const allUsers = await base44.entities.User.list();
+          const allUsers = await api.entities.User.list();
           for (const targetUser of allUsers) {
-            await base44.integrations.Core.SendEmail({
+            await api.integrations.Core.SendEmail({
               to: targetUser.email,
               subject: `⚠️ Quality Alert: Anomaly Detected in ${param}`,
               body: `An anomaly has been detected in parameter: ${param}\n\n${anomalyDetails}\n\nClick to view details in the Data Upload section.`
@@ -968,10 +968,10 @@ ${uploadMode === "linked" ? "Focus on the specific context and be very detailed 
   const generateStructuredSummary = async (data, fileName, fileType, fileUrl) => {
     setGeneratingSummary(true);
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       const sampleData = data.slice(0, 3);
       
-      const summary = await base44.integrations.Core.InvokeLLM({
+      const summary = await api.integrations.Core.InvokeLLM({
         prompt: `Manufacturing Process Data Analysis Report
 
 FILE: ${fileName}
@@ -1064,7 +1064,7 @@ DATA COLUMNS FOUND: ${defectsData.length > 0 ? Object.keys(defectsData[0]).join(
 TOTAL DEFECT RECORDS: ${defectsData.length}
 ` : 'No data extracted from file';
 
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze this ACTUAL uploaded defect data for lamination processes.${contextInfo}
 
 ${dataDescription}
@@ -1116,7 +1116,7 @@ ${uploadMode === "linked" ? "Be very specific about this particular defect and i
     setAnalyzing(true);
     
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `You just analyzed a knowledge document with these details:
         
 Title: ${analysis.suggestedTitle}
@@ -1160,10 +1160,10 @@ Provide actionable insights:
     setKnowledgeAiInsights(null);
 
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const { file_url } = await api.integrations.Core.UploadFile({ file });
       
       // Use AI to analyze and categorize the document
-      const analysis = await base44.integrations.Core.InvokeLLM({
+      const analysis = await api.integrations.Core.InvokeLLM({
         prompt: `You are analyzing a knowledge document for a lamination manufacturing quality management system (window films/PPF).
 
 Read the ENTIRE document carefully and extract comprehensive information:
@@ -1205,8 +1205,8 @@ Be thorough and specific. Extract maximum value from this document for future RC
       });
 
       // Store in knowledge base
-      const user = await base44.auth.me();
-      await base44.entities.KnowledgeDocument.create({
+      const user = await api.auth.me();
+      await api.entities.KnowledgeDocument.create({
         title: analysis.suggestedTitle || file.name,
         documentType: analysis.documentType || 'technical_paper',
         fileUrl: file_url,
@@ -1274,13 +1274,13 @@ Be thorough and specific. Extract maximum value from this document for future RC
   };
 
   const markNotificationRead = async (notificationId) => {
-    const user = await base44.auth.me();
+    const user = await api.auth.me();
     const notification = anomalyNotifications.find(n => n.id === notificationId);
     if (!notification) return;
     
     const readBy = notification.readBy || [];
     if (!readBy.includes(user.email)) {
-      await base44.entities.AnomalyNotification.update(notificationId, {
+      await api.entities.AnomalyNotification.update(notificationId, {
         readBy: [...readBy, user.email]
       });
       queryClient.invalidateQueries({ queryKey: ['anomaly-notifications'] });

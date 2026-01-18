@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Sparkles, CheckCircle2, Calendar, User, ArrowRight } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 
@@ -19,7 +19,7 @@ export default function AICAPAGenerator({ rca, defect, onCAPACreated }) {
 
     try {
       // Get knowledge documents for context
-      const knowledgeDocs = await base44.entities.KnowledgeDocument.filter({ status: "active" }, "-created_date", 50);
+      const knowledgeDocs = await api.entities.KnowledgeDocument.filter({ status: "active" }, "-created_date", 50);
       
       const relevantDocsContext = knowledgeDocs
         .filter(doc => 
@@ -37,7 +37,7 @@ export default function AICAPAGenerator({ rca, defect, onCAPACreated }) {
         .join('\n');
 
       // Generate AI CAPA plan
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `You are a quality engineering expert creating a CAPA (Corrective and Preventive Action) plan for a lamination manufacturing defect.
 
 DEFECT CONTEXT:
@@ -219,7 +219,7 @@ Be specific to lamination processes (web tension, nip pressure, oven temps, line
 
     setSaving(true);
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
 
       // Format actions with owner email
       const correctiveActions = generatedCAPA.correctiveActions.map(ca => ({
@@ -233,7 +233,7 @@ Be specific to lamination processes (web tension, nip pressure, oven temps, line
       }));
 
       // Create CAPA record
-      const newCAPA = await base44.entities.CAPAPlan.create({
+      const newCAPA = await api.entities.CAPAPlan.create({
         rcaId: rca.id,
         defectTicketId: rca.defectTicketId,
         correctiveActions,
@@ -252,7 +252,7 @@ Be specific to lamination processes (web tension, nip pressure, oven temps, line
       });
 
       // Update RCA status
-      await base44.entities.RCARecord.update(rca.id, {
+      await api.entities.RCARecord.update(rca.id, {
         status: "completed",
         completedDate: new Date().toISOString()
       });

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Sparkles, TrendingUp, AlertTriangle, FileText, 
@@ -26,7 +26,7 @@ export default function DefectInsights({ insights, defect, historicalData }) {
     setCreatingRCA(true);
     
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       
       // Pre-populate Ishikawa diagram from AI suggestions
       const ishikawaDiagram = {
@@ -62,7 +62,7 @@ export default function DefectInsights({ insights, defect, historicalData }) {
       })) || [];
 
       // Create the RCA record
-      const newRCA = await base44.entities.RCARecord.create({
+      const newRCA = await api.entities.RCARecord.create({
         defectTicketId: defect.id,
         analyst: user.email,
         status: "in_progress",
@@ -75,7 +75,7 @@ export default function DefectInsights({ insights, defect, historicalData }) {
       });
 
       // Update defect status
-      await base44.entities.DefectTicket.update(defect.id, {
+      await api.entities.DefectTicket.update(defect.id, {
         status: "rca_in_progress",
         linkedRCAId: newRCA.id
       });

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ export default function QFIRForm() {
   React.useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await api.auth.me();
         setCurrentUser(user);
       } catch (error) {
         console.error("Error loading user:", error);
@@ -51,7 +51,7 @@ export default function QFIRForm() {
 
   const { data: allPendingComplaints = [] } = useQuery({
     queryKey: ['pending-complaints'],
-    queryFn: () => base44.entities.CustomerComplaint.filter({ status: "pending_qfir" }, "-dateLogged", 50),
+    queryFn: () => api.entities.CustomerComplaint.filter({ status: "pending_qfir" }, "-dateLogged", 50),
   });
 
   const isAdmin = currentUser?.role?.toLowerCase() === 'admin';
@@ -67,31 +67,31 @@ export default function QFIRForm() {
 
   const { data: allComplaints = [] } = useQuery({
     queryKey: ['all-qfir-complaints'],
-    queryFn: () => base44.entities.CustomerComplaint.list("-dateLogged", 200),
+    queryFn: () => api.entities.CustomerComplaint.list("-dateLogged", 200),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas-for-qfir'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 100),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 100),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas-for-qfir'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 100),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 100),
   });
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-for-qfir'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 200),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 200),
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-for-allocation'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => api.entities.User.list(),
   });
 
   const updateComplaintMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.CustomerComplaint.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.CustomerComplaint.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-complaints'] });
       queryClient.invalidateQueries({ queryKey: ['all-qfir-complaints'] });
@@ -104,7 +104,7 @@ export default function QFIRForm() {
   const reconcileMutation = useMutation({
     mutationFn: async () => {
       // Fetch Closed CAPAs
-      const closedCapas = await base44.entities.CAPAPlan.filter({ approvalState: "closed" }, "-created_date", 200);
+      const closedCapas = await api.entities.CAPAPlan.filter({ approvalState: "closed" }, "-created_date", 200);
       const closedCapaIds = new Set(closedCapas.map(c => c.id));
       
       // Maps to find triggers
@@ -114,9 +114,9 @@ export default function QFIRForm() {
       // Helper to close defect
       const closeDefect = async (defectId) => {
         try {
-          const defects = await base44.entities.DefectTicket.filter({ id: defectId });
+          const defects = await api.entities.DefectTicket.filter({ id: defectId });
           if (defects.length > 0 && defects[0].status !== 'closed') {
-            await base44.entities.DefectTicket.update(defectId, { status: 'closed' });
+            await api.entities.DefectTicket.update(defectId, { status: 'closed' });
           }
         } catch (e) { console.error("Error closing defect", e); }
       };
@@ -133,7 +133,7 @@ export default function QFIRForm() {
       let updatedCount = 0;
 
       // 2. "Reverse" Scan: Iterate ALL Open Complaints
-      const allComplaints = await base44.entities.CustomerComplaint.list("-dateLogged", 500);
+      const allComplaints = await api.entities.CustomerComplaint.list("-dateLogged", 500);
       const openComplaints = allComplaints.filter(c => c.status !== 'closed');
 
       for (const complaint of openComplaints) {
@@ -159,7 +159,7 @@ export default function QFIRForm() {
         }
 
         if (shouldClose) {
-           await base44.entities.CustomerComplaint.update(complaint.id, { 
+           await api.entities.CustomerComplaint.update(complaint.id, { 
              status: 'closed',
              closedDate: new Date().toISOString(),
              closureNotes: `Auto-reconciled: Linked to closed ${closingSource}`
@@ -177,13 +177,13 @@ export default function QFIRForm() {
             // Find complaints that point to this defect but weren't caught in step 2 (e.g. if we missed them)
             // Or check complaints that the DEFECT points to (forward link)
             try {
-                const defectArr = await base44.entities.DefectTicket.filter({ id: capa.defectTicketId });
+                const defectArr = await api.entities.DefectTicket.filter({ id: capa.defectTicketId });
                 if (defectArr.length > 0 && defectArr[0].linkedComplaintId) {
                     const complaintId = defectArr[0].linkedComplaintId;
                     // Check if this complaint is still open
-                    const targetComplaints = await base44.entities.CustomerComplaint.filter({ id: complaintId });
+                    const targetComplaints = await api.entities.CustomerComplaint.filter({ id: complaintId });
                     if (targetComplaints.length > 0 && targetComplaints[0].status !== 'closed') {
-                        await base44.entities.CustomerComplaint.update(complaintId, {
+                        await api.entities.CustomerComplaint.update(complaintId, {
                              status: 'closed',
                              closedDate: new Date().toISOString(),
                              closureNotes: `Auto-reconciled via Defect link from CAPA ${capa.id}`
@@ -207,39 +207,39 @@ export default function QFIRForm() {
   const deleteComplaintChainMutation = useMutation({
     mutationFn: async (complaintId) => {
       // Find linked defect
-      const defects = await base44.entities.DefectTicket.filter({ id: complaintId });
+      const defects = await api.entities.DefectTicket.filter({ id: complaintId });
       
       for (const defect of defects) {
         // Find and delete linked RCAs
-        const rcas = await base44.entities.RCARecord.filter({ defectTicketId: defect.id });
+        const rcas = await api.entities.RCARecord.filter({ defectTicketId: defect.id });
         for (const rca of rcas) {
-          await base44.entities.RCARecord.delete(rca.id);
+          await api.entities.RCARecord.delete(rca.id);
         }
         
         // Find and delete linked CAPAs
-        const capas = await base44.entities.CAPAPlan.filter({ defectTicketId: defect.id });
+        const capas = await api.entities.CAPAPlan.filter({ defectTicketId: defect.id });
         for (const capa of capas) {
           // Delete linked SOPs
           if (capa.linkedSOPIds) {
             for (const sopId of capa.linkedSOPIds) {
-              await base44.entities.SOP.delete(sopId);
+              await api.entities.SOP.delete(sopId);
             }
           }
-          await base44.entities.CAPAPlan.delete(capa.id);
+          await api.entities.CAPAPlan.delete(capa.id);
         }
         
         // Find and delete linked DoEs
-        const does = await base44.entities.DoE.filter({ relatedDefectId: defect.id });
+        const does = await api.entities.DoE.filter({ relatedDefectId: defect.id });
         for (const doe of does) {
-          await base44.entities.DoE.delete(doe.id);
+          await api.entities.DoE.delete(doe.id);
         }
         
         // Delete defect
-        await base44.entities.DefectTicket.delete(defect.id);
+        await api.entities.DefectTicket.delete(defect.id);
       }
       
       // Finally delete the complaint
-      await base44.entities.CustomerComplaint.delete(complaintId);
+      await api.entities.CustomerComplaint.delete(complaintId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-complaints'] });
@@ -264,7 +264,7 @@ export default function QFIRForm() {
     // Fetch missing details for full report
     let defect = null;
     if (capa.defectTicketId) {
-      const defects = await base44.entities.DefectTicket.filter({ id: capa.defectTicketId });
+      const defects = await api.entities.DefectTicket.filter({ id: capa.defectTicketId });
       defect = defects[0];
     }
 
@@ -275,14 +275,14 @@ export default function QFIRForm() {
 
   const assignQFIRMutation = useMutation({
     mutationFn: async ({ complaintId, assignedUser }) => {
-      await base44.entities.CustomerComplaint.update(complaintId, {
+      await api.entities.CustomerComplaint.update(complaintId, {
         allocatedTo: assignedUser,
         allocatedDate: new Date().toISOString(),
         responsiblePerson: assignedUser
       });
       
       // Send email notification
-      await base44.integrations.Core.SendEmail({
+      await api.integrations.Core.SendEmail({
         to: assignedUser,
         subject: `QFIR Assignment: ${fillingQFIR.ticketNumber}`,
         body: `You have been assigned to complete QFIR for complaint ${fillingQFIR.ticketNumber}.\n\nCustomer: ${fillingQFIR.customerName}\nIssue: ${fillingQFIR.issueDescription}\n\nPlease complete the QFIR form in the QFIR Management section.`
@@ -302,7 +302,7 @@ export default function QFIRForm() {
       return;
     }
 
-    const user = await base44.auth.me();
+    const user = await api.auth.me();
 
     updateComplaintMutation.mutate({
       id: fillingQFIR.id,

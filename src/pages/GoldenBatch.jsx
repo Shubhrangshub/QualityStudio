@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export default function GoldenBatch() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await api.auth.me();
         setCurrentUser(user);
       } catch (error) {
         console.error("Error loading user:", error);
@@ -48,23 +48,23 @@ export default function GoldenBatch() {
 
   const { data: goldenBatches = [], isLoading } = useQuery({
     queryKey: ['golden-batches'],
-    queryFn: () => base44.entities.GoldenBatch.filter({ status: "active" }, "-created_date", 50),
+    queryFn: () => api.entities.GoldenBatch.filter({ status: "active" }, "-created_date", 50),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['process-runs-for-golden'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 100),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 100),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.GoldenBatch.delete(id),
+    mutationFn: (id) => api.entities.GoldenBatch.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['golden-batches'] });
     }
   });
 
   const deleteProcessRunMutation = useMutation({
-    mutationFn: (id) => base44.entities.ProcessRun.delete(id),
+    mutationFn: (id) => api.entities.ProcessRun.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['process-runs-for-golden'] });
     }

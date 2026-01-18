@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Check, X, Sparkles, CheckCircle2, FileText, Loader2, Unlock } from "lucide-react";
 import { format } from 'date-fns';
 import RelatedDocuments from "../knowledge/RelatedDocuments";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 
 export default function CAPAEditor({ capa, onUpdate }) {
   const [currentUser, setCurrentUser] = useState(null);
@@ -18,7 +18,7 @@ export default function CAPAEditor({ capa, onUpdate }) {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await api.auth.me();
         setCurrentUser(user);
       } catch (e) {}
     };
@@ -115,15 +115,15 @@ export default function CAPAEditor({ capa, onUpdate }) {
       // NEW: Auto-close linked Defect and Complaint if CAPA is closed
       if (newStatus === 'closed' && capa.defectTicketId) {
         try {
-            const defects = await base44.entities.DefectTicket.filter({ id: capa.defectTicketId });
+            const defects = await api.entities.DefectTicket.filter({ id: capa.defectTicketId });
             if (defects.length > 0) {
                 const defect = defects[0];
                 // Update Defect status
-                await base44.entities.DefectTicket.update(defect.id, { status: 'closed' });
+                await api.entities.DefectTicket.update(defect.id, { status: 'closed' });
                 
                 // Update Complaint status if linked
                 if (defect.linkedComplaintId) {
-                    await base44.entities.CustomerComplaint.update(defect.linkedComplaintId, { 
+                    await api.entities.CustomerComplaint.update(defect.linkedComplaintId, { 
                         status: 'closed',
                         closedDate: new Date().toISOString(),
                         closureNotes: `Auto-closed via CAPA ${capa.id} closure.`
@@ -613,9 +613,9 @@ export default function CAPAEditor({ capa, onUpdate }) {
         onLink={async (docId) => {
           // Assuming 'base44' is an available global or imported object for data operations
           // In a real application, this would typically be an API call or a service function.
-          const currentDoc = (await base44.entities.KnowledgeDocument.filter({id: docId}))[0];
+          const currentDoc = (await api.entities.KnowledgeDocument.filter({id: docId}))[0];
           const updatedLinkedCapaIds = [...(currentDoc.linkedCAPAIds || []), capa.id];
-          await base44.entities.KnowledgeDocument.update(docId, {
+          await api.entities.KnowledgeDocument.update(docId, {
             linkedCAPAIds: updatedLinkedCapaIds
           });
           onUpdate({

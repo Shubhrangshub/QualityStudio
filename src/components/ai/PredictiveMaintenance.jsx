@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
   Wrench, AlertTriangle, TrendingDown, Clock, 
@@ -30,7 +30,7 @@ export default function PredictiveMaintenance({
 
   // NEW: Create maintenance work order from AI recommendation
   const createWorkOrderMutation = useMutation({
-    mutationFn: (workOrderData) => base44.entities.MaintenanceWorkOrder.create(workOrderData),
+    mutationFn: (workOrderData) => api.entities.MaintenanceWorkOrder.create(workOrderData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['work-orders'] });
     }
@@ -40,7 +40,7 @@ export default function PredictiveMaintenance({
     setCreatingWorkOrders(prev => ({ ...prev, [recommendation.equipmentId]: true }));
     
     try {
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       
       // Calculate due date based on priority
       const getDueDate = (priority) => {

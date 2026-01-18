@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RefreshCw, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 
 export default function SAPSyncButton({ complaint, onSyncComplete }) {
   const [syncing, setSyncing] = useState(false);
@@ -31,7 +31,7 @@ export default function SAPSyncButton({ complaint, onSyncComplete }) {
         sapOrderNumber: complaint.rolls?.[0]?.soItem || "N/A"
       };
 
-      await base44.entities.CustomerComplaint.update(complaint.id, {
+      await api.entities.CustomerComplaint.update(complaint.id, {
         sapIntegration: sapData
       });
 
@@ -40,7 +40,7 @@ export default function SAPSyncButton({ complaint, onSyncComplete }) {
       console.error("SAP sync error:", err);
       setError(err.message || "Failed to sync with SAP");
       
-      await base44.entities.CustomerComplaint.update(complaint.id, {
+      await api.entities.CustomerComplaint.update(complaint.id, {
         sapIntegration: {
           ...complaint.sapIntegration,
           sapSyncStatus: "failed",

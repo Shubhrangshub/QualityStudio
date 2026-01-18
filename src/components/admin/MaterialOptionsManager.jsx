@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,11 +22,11 @@ export default function MaterialOptionsManager() {
 
   const { data: materials = [] } = useQuery({
     queryKey: ['material-options-admin'],
-    queryFn: () => base44.entities.MaterialOption.list("-created_date", 200),
+    queryFn: () => api.entities.MaterialOption.list("-created_date", 200),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.MaterialOption.create(data),
+    mutationFn: (data) => api.entities.MaterialOption.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['material-options-admin'] });
       queryClient.invalidateQueries({ queryKey: ['material-options'] });
@@ -35,7 +35,7 @@ export default function MaterialOptionsManager() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.MaterialOption.update(id, { isActive: false }),
+    mutationFn: (id) => api.entities.MaterialOption.update(id, { isActive: false }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['material-options-admin'] });
       queryClient.invalidateQueries({ queryKey: ['material-options'] });

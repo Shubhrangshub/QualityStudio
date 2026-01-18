@@ -9,7 +9,7 @@ import {
   TrendingDown, Minus, BarChart3, Sparkles, Loader2, Download, FileText
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 
 const PARAMETER_LABELS = {
   lineSpeed: { label: "Line Speed", unit: "m/min" },
@@ -291,7 +291,7 @@ SUMMARY:
                     onClick={async () => {
                       setAiAnalyzing(true);
                       try {
-                        const result = await base44.integrations.Core.InvokeLLM({
+                        const result = await api.integrations.Core.InvokeLLM({
                           prompt: `Compare this process run against golden batch standards:
 
 GOLDEN BATCH "${selectedBatch.name}":

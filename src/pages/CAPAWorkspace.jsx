@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,12 +32,12 @@ export default function CAPAWorkspace() {
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 50),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 50),
   });
 
   const { data: allRCAs = [] } = useQuery({
     queryKey: ['rcas-completed'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 50),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 50),
   });
 
   // Filter RCAs: only show completed ones without an existing CAPA
@@ -50,16 +50,16 @@ export default function CAPAWorkspace() {
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects-capa'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 100),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 100),
   });
 
   const { data: complaints = [] } = useQuery({
     queryKey: ['complaints-for-capa'],
-    queryFn: () => base44.entities.CustomerComplaint.list("-dateLogged", 100),
+    queryFn: () => api.entities.CustomerComplaint.list("-dateLogged", 100),
   });
 
   const createCAPAMutation = useMutation({
-    mutationFn: (data) => base44.entities.CAPAPlan.create(data),
+    mutationFn: (data) => api.entities.CAPAPlan.create(data),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['capas'] });
       setSelectedCAPA(data);
@@ -68,7 +68,7 @@ export default function CAPAWorkspace() {
   });
 
   const updateCAPAMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.CAPAPlan.update(id, data),
+    mutationFn: ({ id, data }) => api.entities.CAPAPlan.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['capas'] });
     }
@@ -82,16 +82,16 @@ export default function CAPAWorkspace() {
       if (!rca) return;
 
       const defect = defects.find(d => d.id === rca.defectTicketId);
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
 
       // Fetch additional historical data for AI context
-      const allRCAs = await base44.entities.RCARecord.list("-created_date", 30);
-      const allCAPAs = await base44.entities.CAPAPlan.list("-created_date", 30);
-      const allDoEs = await base44.entities.DoE.list("-created_date", 20); // Though DoE isn't directly used in prompt, good to fetch for future context
-      const allProcessRuns = await base44.entities.ProcessRun.list("-dateTimeStart", 30); // Same for process runs
+      const allRCAs = await api.entities.RCARecord.list("-created_date", 30);
+      const allCAPAs = await api.entities.CAPAPlan.list("-created_date", 30);
+      const allDoEs = await api.entities.DoE.list("-created_date", 20); // Though DoE isn't directly used in prompt, good to fetch for future context
+      const allProcessRuns = await api.entities.ProcessRun.list("-dateTimeStart", 30); // Same for process runs
 
       // Get related knowledge documents for context
-      const knowledgeDocs = await base44.entities.KnowledgeDocument.filter({ status: "active" }, "-created_date", 50);
+      const knowledgeDocs = await api.entities.KnowledgeDocument.filter({ status: "active" }, "-created_date", 50);
       
       const relevantDocsContext = knowledgeDocs
         .filter(doc => 
@@ -117,7 +117,7 @@ export default function CAPAWorkspace() {
       }).length;
 
       // Use AI to generate comprehensive CAPA actions
-      const aiCAPAResult = await base44.integrations.Core.InvokeLLM({
+      const aiCAPAResult = await api.integrations.Core.InvokeLLM({
         prompt: `You are a quality engineering expert creating a CAPA (Corrective and Preventive Action) plan for a lamination manufacturing defect.
 
 DEFECT CONTEXT:
@@ -338,7 +338,7 @@ Be specific to lamination processes (web tension, nip pressure, oven temps, line
       console.error("AI CAPA generation error:", error);
       // Fallback to basic CAPA if AI fails
       const rca = rcas.find(r => r.id === rcaId);
-      const user = await base44.auth.me();
+      const user = await api.auth.me();
       
       createCAPAMutation.mutate({
         rcaId: rcaId,

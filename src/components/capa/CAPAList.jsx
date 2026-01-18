@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ export default function CAPAList({ capas, defects = [], rcas = [], onSelect }) {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const user = await base44.auth.me();
+        const user = await api.auth.me();
         setCurrentUser(user);
       } catch (error) {
         console.error("Error loading user:", error);
@@ -25,7 +25,7 @@ export default function CAPAList({ capas, defects = [], rcas = [], onSelect }) {
   }, []);
 
   const deleteCAPAMutation = useMutation({
-    mutationFn: (id) => base44.entities.CAPAPlan.delete(id),
+    mutationFn: (id) => api.entities.CAPAPlan.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['capas'] });
       queryClient.invalidateQueries({ queryKey: ['all-capas'] });

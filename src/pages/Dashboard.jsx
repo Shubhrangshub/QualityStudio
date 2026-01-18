@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
@@ -42,37 +42,37 @@ export default function Dashboard() {
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects', timeRange],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 50),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 50),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 30),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 30),
   });
 
   const { data: kpis = [] } = useQuery({
     queryKey: ['kpis', timeRange],
-    queryFn: () => base44.entities.KPI.list("-recordDate", 20),
+    queryFn: () => api.entities.KPI.list("-recordDate", 20),
   });
 
   const { data: pendingQFIRs = [] } = useQuery({
     queryKey: ['pending-qfirs'],
-    queryFn: () => base44.entities.CustomerComplaint.filter({ status: "pending_qfir" }, "-dateLogged", 20),
+    queryFn: () => api.entities.CustomerComplaint.filter({ status: "pending_qfir" }, "-dateLogged", 20),
   });
 
   const { data: processRuns = [] } = useQuery({
     queryKey: ['process-runs-dashboard'],
-    queryFn: () => base44.entities.ProcessRun.list("-dateTimeStart", 100),
+    queryFn: () => api.entities.ProcessRun.list("-dateTimeStart", 100),
   });
 
   const { data: allComplaints = [] } = useQuery({
     queryKey: ['complaints-dashboard'],
-    queryFn: () => base44.entities.CustomerComplaint.list("-dateLogged", 50),
+    queryFn: () => api.entities.CustomerComplaint.list("-dateLogged", 50),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas-dashboard'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 50),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 50),
   });
 
 

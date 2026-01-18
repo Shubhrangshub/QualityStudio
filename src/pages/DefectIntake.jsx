@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,33 +81,33 @@ export default function DefectIntake() {
 
   const { data: defects = [] } = useQuery({
     queryKey: ['defects'],
-    queryFn: () => base44.entities.DefectTicket.list("-created_date", 50),
+    queryFn: () => api.entities.DefectTicket.list("-created_date", 50),
   });
 
   const { data: pendingQFIRs = [] } = useQuery({
     queryKey: ['pending-qfirs-defect'],
-    queryFn: () => base44.entities.CustomerComplaint.filter({ status: "pending_qfir" }, "-dateLogged", 20),
+    queryFn: () => api.entities.CustomerComplaint.filter({ status: "pending_qfir" }, "-dateLogged", 20),
   });
 
   // Fetch all complaints for linking (not just pending)
   const { data: allComplaints = [] } = useQuery({
     queryKey: ['all-complaints-for-linking'],
-    queryFn: () => base44.entities.CustomerComplaint.list("-dateLogged", 100),
+    queryFn: () => api.entities.CustomerComplaint.list("-dateLogged", 100),
   });
 
   const { data: rcas = [] } = useQuery({
     queryKey: ['rcas-for-traceability'],
-    queryFn: () => base44.entities.RCARecord.list("-created_date", 100),
+    queryFn: () => api.entities.RCARecord.list("-created_date", 100),
   });
 
   const { data: capas = [] } = useQuery({
     queryKey: ['capas-for-traceability'],
-    queryFn: () => base44.entities.CAPAPlan.list("-created_date", 100),
+    queryFn: () => api.entities.CAPAPlan.list("-created_date", 100),
   });
 
   const { data: users = [] } = useQuery({
     queryKey: ['users-for-assignment'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => api.entities.User.list(),
   });
 
   React.useEffect(() => {
@@ -134,7 +134,7 @@ export default function DefectIntake() {
   // NEW: Load material options
   const { data: materialOptions = [] } = useQuery({
     queryKey: ['material-options'],
-    queryFn: () => base44.entities.MaterialOption.filter({ isActive: true }),
+    queryFn: () => api.entities.MaterialOption.filter({ isActive: true }),
   });
 
   const srcTypes = materialOptions.filter(m => m.category === 'srcType');
@@ -158,7 +158,7 @@ export default function DefectIntake() {
     setAddingDefectType(true);
     try {
       const formattedValue = newDefectType.trim().toLowerCase().replace(/\s+/g, '_');
-      await base44.entities.MaterialOption.create({
+      await api.entities.MaterialOption.create({
         category: 'defectType',
         value: formattedValue,
         isActive: true
@@ -182,7 +182,7 @@ export default function DefectIntake() {
       } else {
         ticketId = await generateTicketId(data.line);
       }
-      return base44.entities.DefectTicket.create({ ...data, ticketId });
+      return api.entities.DefectTicket.create({ ...data, ticketId });
     },
     onSuccess: async (createdDefect) => {
       queryClient.invalidateQueries({ queryKey: ['defects'] });
@@ -207,7 +207,7 @@ export default function DefectIntake() {
     
     // Find or create counter for this year/month/line
     const counterKey = `${year}${month}${line}`;
-    const counters = await base44.entities.TicketCounter.filter({ 
+    const counters = await api.entities.TicketCounter.filter({ 
       year: parseInt('20' + year), 
       month, 
       line 
@@ -217,9 +217,9 @@ export default function DefectIntake() {
     if (counters.length > 0) {
       const counter = counters[0];
       sequence = (counter.lastSequence || 0) + 1;
-      await base44.entities.TicketCounter.update(counter.id, { lastSequence: sequence });
+      await api.entities.TicketCounter.update(counter.id, { lastSequence: sequence });
     } else {
-      await base44.entities.TicketCounter.create({ 
+      await api.entities.TicketCounter.create({ 
         year: parseInt('20' + year), 
         month, 
         line, 
@@ -236,11 +236,11 @@ export default function DefectIntake() {
     
     try {
       // Get all historical data
-      const allDefects = await base44.entities.DefectTicket.list("-created_date", 50);
-      const allRCAs = await base44.entities.RCARecord.list("-created_date", 30);
-      const allCAPAs = await base44.entities.CAPAPlan.list("-created_date", 30);
-      const allDoEs = await base44.entities.DoE.list("-created_date", 20);
-      const allProcessRuns = await base44.entities.ProcessRun.list("-dateTimeStart", 30);
+      const allDefects = await api.entities.DefectTicket.list("-created_date", 50);
+      const allRCAs = await api.entities.RCARecord.list("-created_date", 30);
+      const allCAPAs = await api.entities.CAPAPlan.list("-created_date", 30);
+      const allDoEs = await api.entities.DoE.list("-created_date", 20);
+      const allProcessRuns = await api.entities.ProcessRun.list("-dateTimeStart", 30);
 
       // Find similar defects
       const similarDefects = allDefects.filter(d => 
@@ -290,7 +290,7 @@ export default function DefectIntake() {
       }
 
       // Use AI to analyze and suggest root causes
-      const aiAnalysis = await base44.integrations.Core.InvokeLLM({
+      const aiAnalysis = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze NEW defect:
 Type: ${defect.defectType?.replace(/_/g, ' ')}
 Severity: ${defect.severity}
@@ -370,7 +370,7 @@ Provide:
       };
 
       // Update the defect with insights
-      await base44.entities.DefectTicket.update(defect.id, {
+      await api.entities.DefectTicket.update(defect.id, {
         aiInsights: insights
       });
 
@@ -430,7 +430,7 @@ Provide:
     
     for (const file of files) {
       try {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        const { file_url } = await api.integrations.Core.UploadFile({ file });
         uploadedUrls.push(file_url);
       } catch (error) {
         console.error("Upload error:", error);
@@ -449,7 +449,7 @@ Provide:
   const handleAIClassification = async (imageUrl) => {
     setAiClassifying(true);
     try {
-      const result = await base44.integrations.Core.InvokeLLM({
+      const result = await api.integrations.Core.InvokeLLM({
         prompt: `Analyze this defect image from a window film/PPF lamination process. 
         Identify the defect type from: ${DEFECT_TYPES.join(', ')}.
         Also suggest 3 quick checks or parameter adjustments to try.

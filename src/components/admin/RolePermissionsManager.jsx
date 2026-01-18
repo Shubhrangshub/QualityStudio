@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { api } from '@/api/apiClient';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export default function RolePermissionsManager() {
 
   const { data: rolePermissions = [] } = useQuery({
     queryKey: ['role-permissions'],
-    queryFn: () => base44.entities.RolePermissions.list(),
+    queryFn: () => api.entities.RolePermissions.list(),
   });
 
   React.useEffect(() => {
@@ -70,9 +70,9 @@ export default function RolePermissionsManager() {
     mutationFn: async (data) => {
       const existing = rolePermissions.find(rp => rp.role === selectedRole);
       if (existing) {
-        return base44.entities.RolePermissions.update(existing.id, data);
+        return api.entities.RolePermissions.update(existing.id, data);
       } else {
-        return base44.entities.RolePermissions.create({ ...data, role: selectedRole });
+        return api.entities.RolePermissions.create({ ...data, role: selectedRole });
       }
     },
     onSuccess: () => {
