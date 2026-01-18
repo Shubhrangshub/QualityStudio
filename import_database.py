@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Import production data from Base44 export into MongoDB
+Import production data export into MongoDB
 Preserves all existing data and merges new records
 """
 from pymongo import MongoClient
@@ -43,7 +43,7 @@ def convert_dates(obj):
                 convert_dates(item)
     return obj
 
-# Collection mapping - Base44 entity names to MongoDB collection names
+# Collection mapping - Entity names to MongoDB collection names
 COLLECTION_MAP = {
     "CustomerComplaint": "customer_complaints",
     "DefectTicket": "defect_tickets",
