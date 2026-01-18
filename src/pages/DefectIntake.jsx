@@ -583,15 +583,15 @@ Provide:
                     <p className="text-gray-600">Loading...</p>
                   </CardContent>
                 </Card>
-              ) : !isAdmin ? (
+              ) : !canCreateDefect ? (
                 <Card className="border-orange-300 bg-orange-50">
                   <CardContent className="p-6 text-center">
                     <AlertCircle className="w-12 h-12 text-orange-600 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-orange-900 mb-2">
-                      Admin Access Required
+                      Access Restricted
                     </h3>
                     <p className="text-orange-800 mb-4">
-                      Only administrators can create new defect tickets. Please contact your administrator to report defects.
+                      You don't have permission to create defect tickets. Please contact your administrator if you need access.
                     </p>
                     <Link to={createPageUrl("Dashboard")}>
                       <Button variant="outline">
