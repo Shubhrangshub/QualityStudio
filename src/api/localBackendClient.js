@@ -1,5 +1,8 @@
 // Local backend API client (replaces Base44)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
+// Use relative URL if in Emergent preview, absolute URL for local dev
+const API_BASE_URL = window.location.hostname.includes('emergentagent.com')
+  ? '/api'  // Emergent preview uses proxy
+  : import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';  // Local dev
 
 class LocalAPIClient {
   constructor(baseURL) {
