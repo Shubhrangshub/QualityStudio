@@ -236,6 +236,114 @@ async def health_check():
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
 
+
+# Authentication endpoints
+security = HTTPBearer()
+
+@app.post("/api/auth/login", tags=["Authentication"])
+async def login(credentials: Dict[str, str]):
+    """Login with email and password"""
+    email = credentials.get("email")
+    password = credentials.get("password")
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password required")
+    
+    user = authenticate_user(email, password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Create access token
+    access_token = AuthService.create_access_token(data={"sub": user["id"]})
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@app.get("/api/auth/me", tags=["Authentication"])
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current user info"""
+    token = credentials.credentials
+    payload = AuthService.decode_token(token)
+    
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_id = payload.get("sub")
+    user = get_user_by_id(user_id)
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    return user
+
+@app.get("/api/auth/permissions", tags=["Authentication"])
+async def get_user_permissions(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get current user's permissions"""
+    token = credentials.credentials
+    payload = AuthService.decode_token(token)
+    
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_id = payload.get("sub")
+    user_data = get_user_by_id(user_id)
+    
+    if not user_data:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    user = User(**user_data)
+    permissions = list(user.get_permissions())
+    
+    return {
+        "role": user.role,
+        "permissions": permissions
+    }
+
+@app.get("/api/auth/roles", tags=["Authentication"])
+async def get_all_roles():
+    """Get all available roles and their descriptions"""
+    return ROLE_DESCRIPTIONS
+
+@app.get("/api/auth/demo-users", tags=["Authentication"])
+async def get_demo_users():
+    """Get demo user credentials for testing"""
+    return {
+        "admin": {
+            "email": "admin@qualitystudio.com",
+            "password": "admin123",
+            "role": "admin",
+            "description": "Full system access"
+        },
+        "quality_inspector": {
+            "email": "inspector@qualitystudio.com",
+            "password": "inspector123",
+            "role": "quality_inspector",
+            "description": "Quality inspection and defect reporting"
+        },
+        "quality_engineer": {
+            "email": "engineer@qualitystudio.com",
+            "password": "engineer123",
+            "role": "quality_engineer",
+            "description": "RCA, CAPA, and process optimization"
+        },
+        "sales": {
+            "email": "sales@qualitystudio.com",
+            "password": "sales123",
+            "role": "sales",
+            "description": "Customer complaints and quality viewing"
+        },
+        "operator": {
+            "email": "operator@qualitystudio.com",
+            "password": "operator123",
+            "role": "operator",
+            "description": "Production defect reporting and process logging"
+        }
+    }
+
+
 # Generic CRUD endpoints for each entity
 COLLECTIONS = {
     "CustomerComplaint": (CustomerComplaint, "customer_complaints"),
