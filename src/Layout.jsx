@@ -213,8 +213,8 @@ export default function Layout({ children, currentPageName }) {
 
   const loadUserAndAlerts = async () => {
     try {
-      // Use localStorage user instead of Base44
-      const storedUser = localStorage.getItem('user');
+      // Use current_user from localStorage (set by App.jsx)
+      const storedUser = localStorage.getItem('current_user');
       if (storedUser) {
         const currentUser = JSON.parse(storedUser);
         setUser(currentUser);
