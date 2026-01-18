@@ -11,5 +11,10 @@ export default defineConfig({
       legacySDKImports: process.env.BASE44_LEGACY_SDK_IMPORTS === 'true'
     }),
     react(),
-  ]
+  ],
+  server: {
+    port: 3000,
+    host: '0.0.0.0',
+    strictPort: true,
+  }
 });
