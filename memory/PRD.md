@@ -185,6 +185,9 @@ Replicate a Quality Management System application named "QualityStudio" from a n
   - Updated `Admin.jsx` deployment instructions
   - Deleted obsolete files: `DEPLOYMENT.md`, `HANDOVER.md`, `download_lib.sh`
   - Regenerated `package-lock.json` without @base44 packages
+  - **Added `integrations` API object** to replace Base44 integrations.Core
+  - Added backend `/api/ai/invoke-llm` endpoint for generic LLM calls
+  - Added backend `/api/notifications/email/send` endpoint for email sending
   - **Verified with 27 backend tests - 100% pass rate**
 
 ### P1 - Completed ✅ (January 18, 2025)
