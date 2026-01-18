@@ -1097,6 +1097,15 @@ async def serve_uploaded_file(file_path: str):
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(full_path)
 
+# Serve uploaded files through API prefix (for Kubernetes ingress routing)
+@app.get("/api/files/serve/{file_path:path}", tags=["Files"])
+async def serve_uploaded_file_api(file_path: str):
+    """Serve uploaded files through API route"""
+    full_path = os.path.join(UPLOAD_DIR, file_path)
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(full_path)
+
 # ============== EMAIL NOTIFICATION ENDPOINTS ==============
 from services.email_service import email_service
 
