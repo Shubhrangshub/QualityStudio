@@ -51,6 +51,14 @@ class AuthService:
 
 # Default demo users (for testing)
 DEMO_USERS = {
+    "shubhrangshub@gmail.com": {
+        "id": "user_shubhrang",
+        "email": "shubhrangshub@gmail.com",
+        "name": "Shubhrang (Admin)",
+        "password_hash": pwd_context.hash("admin123"),  # Password: admin123
+        "role": "admin",
+        "is_active": True
+    },
     "admin@qualitystudio.com": {
         "id": "user_admin",
         "email": "admin@qualitystudio.com",
