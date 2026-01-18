@@ -319,22 +319,20 @@ async def health_check():
         raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
 
 # Authentication endpoints
-security = HTTPBearer()
-
 @app.post("/api/auth/login", tags=["Authentication"])
 async def login(credentials: Dict[str, str]):
-    """Login with email and password"""
+    """Login with email and password - returns JWT token"""
     email = credentials.get("email")
     password = credentials.get("password")
     
     if not email or not password:
         raise HTTPException(status_code=400, detail="Email and password required")
     
-    user = authenticate_user(email, password)
+    user = await authenticate_user_async(email, password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    access_token = AuthService.create_access_token(data={"sub": user["id"]})
+    access_token = AuthService.create_access_token(data={"sub": user["id"], "role": user["role"]})
     
     return {
         "access_token": access_token,
@@ -342,39 +340,67 @@ async def login(credentials: Dict[str, str]):
         "user": user
     }
 
-@app.get("/api/auth/me", tags=["Authentication"])
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Get current user info"""
-    token = credentials.credentials
-    payload = AuthService.decode_token(token)
+@app.post("/api/auth/register", tags=["Authentication"])
+async def register(credentials: Dict[str, str]):
+    """Register a new user"""
+    email = credentials.get("email")
+    password = credentials.get("password")
+    name = credentials.get("name", email.split("@")[0] if email else "")
+    role = credentials.get("role", "operator")
     
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email and password required")
+    
+    # Check if email already exists in demo users
+    if email in DEMO_USERS:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Create user in MongoDB
+    user = await create_user(email, password, name, role)
+    if not user:
+        raise HTTPException(status_code=400, detail="Email already registered or registration failed")
+    
+    # Generate token
+    access_token = AuthService.create_access_token(data={"sub": user["id"], "role": user["role"]})
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user
+    }
+
+@app.post("/api/auth/validate-token", tags=["Authentication"])
+async def validate_token(data: Dict[str, str]):
+    """Validate a JWT token and return user info"""
+    token = data.get("token")
+    if not token:
+        raise HTTPException(status_code=400, detail="Token required")
+    
+    is_valid, payload, error = AuthService.validate_token(token)
+    
+    if not is_valid:
+        raise HTTPException(status_code=401, detail=error or "Invalid token")
     
     user_id = payload.get("sub")
-    user = get_user_by_id(user_id)
+    user = await get_user_by_id_async(user_id)
     
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     
-    return user
+    return {
+        "valid": True,
+        "user": user
+    }
+
+@app.get("/api/auth/me", tags=["Authentication"])
+async def get_current_user_info(current_user: Dict = Depends(get_current_user_required)):
+    """Get current user info (requires valid token)"""
+    return current_user
 
 @app.get("/api/auth/permissions", tags=["Authentication"])
-async def get_user_permissions(credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_user_permissions(current_user: Dict = Depends(get_current_user_required)):
     """Get current user's permissions"""
-    token = credentials.credentials
-    payload = AuthService.decode_token(token)
-    
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    
-    user_id = payload.get("sub")
-    user_data = get_user_by_id(user_id)
-    
-    if not user_data:
-        raise HTTPException(status_code=401, detail="User not found")
-    
-    user = User(**user_data)
+    user = User(**current_user)
     permissions = list(user.get_permissions())
     
     return {
