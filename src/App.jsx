@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
 import { Toaster } from "@/components/ui/toaster";
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClientInstance } from '@/lib/query-client';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { pagesConfig } from './pages.config';
 
@@ -11,8 +11,76 @@ const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const MainPage = mainPageKey ? Pages[mainPageKey] : () => <></>;
 
-// Simple Login Component
+// Demo users (client-side only for preview)
+const DEMO_USERS = {
+  'shubhrangshub@gmail.com': { password: 'admin123', name: 'Shubhrang (Admin)', role: 'admin' },
+  'admin@qualitystudio.com': { password: 'admin123', name: 'Admin User', role: 'admin' },
+  'engineer@qualitystudio.com': { password: 'engineer123', name: 'Quality Engineer', role: 'quality_engineer' },
+  'inspector@qualitystudio.com': { password: 'inspector123', name: 'Quality Inspector', role: 'quality_inspector' },
+  'sales@qualitystudio.com': { password: 'sales123', name: 'Sales Representative', role: 'sales' },
+  'operator@qualitystudio.com': { password: 'operator123', name: 'Production Operator', role: 'operator' }
+};
+
+// Auth Context
+const AuthContext = createContext(null);
+
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.removeItem('user');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  const login = (email, password) => {
+    const demoUser = DEMO_USERS[email];
+    if (demoUser && demoUser.password === password) {
+      const userData = {
+        id: `user_${email.split('@')[0]}`,
+        email,
+        name: demoUser.name,
+        role: demoUser.role,
+        is_active: true
+      };
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, user: userData };
+    }
+    return { success: false, error: 'Invalid credentials' };
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+}
+
+// Login Component
 function LoginPage() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -23,63 +91,47 @@ function LoginPage() {
     setError('');
     setLoading(true);
 
-    try {
-      const response = await fetch('http://localhost:8001/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      if (!response.ok) {
-        throw new Error('Invalid credentials');
-      }
-
-      const data = await response.json();
-      
-      // Store token and user info
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Reload page to show app
-      window.location.reload();
-    } catch (err) {
-      setError(err.message || 'Login failed');
-    } finally {
-      setLoading(false);
+    const result = login(email, password);
+    if (!result.success) {
+      setError(result.error);
     }
+    setLoading(false);
   };
 
   const quickLogin = (userEmail, pwd) => {
     setEmail(userEmail);
     setPassword(pwd);
     setTimeout(() => {
-      document.getElementById('login-form').requestSubmit();
+      const result = login(userEmail, pwd);
+      if (!result.success) {
+        setError(result.error);
+      }
     }, 100);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-        <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-2xl">
+        <div className="text-center">
+          <h2 className="text-4xl font-bold text-gray-900 mb-2">
             Quality Studio
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your account
+          <p className="text-sm text-gray-600">
+            Enterprise Quality Management System
           </p>
         </div>
         
-        <form id="login-form" className="mt-8 space-y-6" onSubmit={handleLogin}>
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
+              <p className="text-sm">{error}</p>
             </div>
           )}
           
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                Email Address
               </label>
               <input
                 id="email"
@@ -87,13 +139,13 @@ function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                 placeholder="your@email.com"
               />
             </div>
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
               <input
@@ -102,7 +154,7 @@ function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
                 placeholder="••••••••"
               />
             </div>
@@ -111,50 +163,58 @@ function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-6">
-          <p className="text-sm text-gray-600 text-center mb-4">Quick login (demo accounts):</p>
-          <div className="grid grid-cols-2 gap-2">
+        <div className="mt-8">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Quick Login (Demo)</span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3">
             <button
               onClick={() => quickLogin('shubhrangshub@gmail.com', 'admin123')}
-              className="px-3 py-2 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+              className="px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition text-sm font-medium"
             >
-              Your Admin
+              👑 Your Admin
             </button>
             <button
               onClick={() => quickLogin('admin@qualitystudio.com', 'admin123')}
-              className="px-3 py-2 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+              className="px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
             >
-              Admin
+              🔑 Admin
             </button>
             <button
               onClick={() => quickLogin('engineer@qualitystudio.com', 'engineer123')}
-              className="px-3 py-2 text-xs bg-green-100 text-green-700 rounded hover:bg-green-200"
+              className="px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition text-sm font-medium"
             >
-              Engineer
+              ⚙️ Engineer
             </button>
             <button
               onClick={() => quickLogin('inspector@qualitystudio.com', 'inspector123')}
-              className="px-3 py-2 text-xs bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
+              className="px-4 py-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition text-sm font-medium"
             >
-              Inspector
+              🔍 Inspector
             </button>
             <button
               onClick={() => quickLogin('sales@qualitystudio.com', 'sales123')}
-              className="px-3 py-2 text-xs bg-orange-100 text-orange-700 rounded hover:bg-orange-200"
+              className="px-4 py-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition text-sm font-medium"
             >
-              Sales
+              💼 Sales
             </button>
             <button
               onClick={() => quickLogin('operator@qualitystudio.com', 'operator123')}
-              className="px-3 py-2 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+              className="px-4 py-3 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition text-sm font-medium"
             >
-              Operator
+              🏭 Operator
             </button>
           </div>
         </div>
@@ -165,33 +225,29 @@ function LoginPage() {
 
 // Layout wrapper with logout
 const LayoutWrapper = ({ children, currentPageName }) => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    window.location.reload();
-  };
+  const { user, logout } = useAuth();
 
   if (Layout) {
     return (
-      <Layout currentPageName={currentPageName}>
-        <div className="absolute top-4 right-4 z-50">
-          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg shadow-md">
+      <>
+        <div className="fixed top-4 right-4 z-50">
+          <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-lg shadow-lg border border-gray-200">
             <div className="text-sm">
-              <div className="font-medium">{user.name}</div>
-              <div className="text-gray-500 text-xs">{user.role}</div>
+              <div className="font-semibold text-gray-900">{user?.name}</div>
+              <div className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ')}</div>
             </div>
             <button
-              onClick={handleLogout}
-              className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+              onClick={logout}
+              className="px-4 py-2 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 transition font-medium"
             >
               Logout
             </button>
           </div>
         </div>
-        {children}
-      </Layout>
+        <Layout currentPageName={currentPageName}>
+          {children}
+        </Layout>
+      </>
     );
   }
   
@@ -200,24 +256,20 @@ const LayoutWrapper = ({ children, currentPageName }) => {
 
 // Protected App Component
 function ProtectedApp() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, loading } = useAuth();
 
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-    setIsAuthenticated(!!token);
-    setIsLoading(false);
-  }, []);
-
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Quality Studio...</p>
+        </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return <LoginPage />;
   }
 
@@ -236,12 +288,14 @@ function ProtectedApp() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClientInstance}>
-      <Router>
-        <ProtectedApp />
-      </Router>
-      <Toaster />
-    </QueryClientProvider>
+    <AuthProvider>
+      <QueryClientProvider client={queryClientInstance}>
+        <Router>
+          <ProtectedApp />
+        </Router>
+        <Toaster />
+      </QueryClientProvider>
+    </AuthProvider>
   );
 }
 
