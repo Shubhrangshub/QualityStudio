@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { base44 } from "@/api/base44Client";
+import { entities, ai } from "@/api/localBackendClient";
 import { 
   Bot, Send, X, Minimize2, Maximize2, Loader2, 
   Sparkles, FileText, TrendingUp, Lightbulb
@@ -40,31 +40,28 @@ export default function AICopilot() {
 
     try {
       // Get context from app
-      const defects = await base44.entities.DefectTicket.list("-created_date", 10);
-      const rcas = await base44.entities.RCARecord.list("-created_date", 5);
+      const defects = await entities.DefectTicket.list("-created_date", 10);
+      const rcas = await entities.RCARecord.list("-created_date", 5);
       
       const context = `
 Recent Defects: ${defects.map(d => `${d.defectType} (${d.severity}) on ${d.line}`).join(', ')}
 Active RCAs: ${rcas.length}
       `;
 
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are a quality engineering AI copilot expert in lamination processes for window films and PPF.
+      // Use AI service for RCA suggestions
+      const response = await ai.getRCASuggestions(
+        `${context}\n\nUser question: ${userMessage}`,
+        'general',
+        'minor'
+      );
 
-Context about current operations:
-${context}
-
-User question: ${userMessage}
-
-Provide helpful, actionable advice. If asked to create SOPs, training materials, or analyze defects, provide detailed structured responses. If asked about experiments, suggest DoE designs. If asked about automation, provide specific IoT/automation recommendations.`,
-        add_context_from_internet: userMessage.toLowerCase().includes('article') || 
-                                    userMessage.toLowerCase().includes('research') ||
-                                    userMessage.toLowerCase().includes('latest')
-      });
+      const aiResponse = response.suggestions 
+        ? `Based on my analysis:\n\n${response.suggestions.join('\n\n')}` 
+        : 'I\'m here to help with quality analysis. Please try asking about defects, RCA, or process improvements.';
 
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: response 
+        content: aiResponse 
       }]);
     } catch (error) {
       setMessages(prev => [...prev, { 
