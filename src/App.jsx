@@ -184,7 +184,7 @@ function LoginPage() {
               onClick={() => quickLogin('shubhrangshub@gmail.com', 'admin123')}
               className="px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition text-sm font-medium"
             >
-              👑 Your Admin
+              👑 Shubhrang's Admin
             </button>
             <button
               onClick={() => quickLogin('admin@qualitystudio.com', 'admin123')}
