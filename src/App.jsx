@@ -13,7 +13,7 @@ const MainPage = mainPageKey ? Pages[mainPageKey] : () => <></>;
 
 // Demo users (client-side only for preview)
 const DEMO_USERS = {
-  'shubhrangshub@gmail.com': { password: 'admin123', name: 'Shubhrang (Admin)', role: 'admin' },
+  'shubhrangshub@gmail.com': { password: 'admin123', name: 'Shubhrang Shubham', role: 'admin' },
   'admin@qualitystudio.com': { password: 'admin123', name: 'Admin User', role: 'admin' },
   'engineer@qualitystudio.com': { password: 'engineer123', name: 'Quality Engineer', role: 'quality_engineer' },
   'inspector@qualitystudio.com': { password: 'inspector123', name: 'Quality Inspector', role: 'quality_inspector' },
