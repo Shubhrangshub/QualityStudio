@@ -569,6 +569,7 @@ export const localBackend = {
   exports,
   notifications,
   notificationSocket,
+  integrations,
 };
 
 export default localBackend;
