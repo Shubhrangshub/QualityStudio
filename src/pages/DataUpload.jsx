@@ -752,9 +752,21 @@ export default function DataUpload() {
 
       await analyzeDefectData(defectsData, contextInfo);
     } catch (error) {
+      // Handle error message - could be string or object
+      let errorMessage = "Upload failed";
+      if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      } else if (error?.detail) {
+        errorMessage = error.detail;
+      } else if (typeof error === 'object') {
+        errorMessage = JSON.stringify(error);
+      }
+      
       setUploadResult({
         success: false,
-        message: error.message || "Upload failed"
+        message: errorMessage
       });
     }
 
