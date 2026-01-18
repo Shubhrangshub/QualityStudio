@@ -22,7 +22,8 @@ import {
   Sparkles,
   Shield,
   Award,
-  Database
+  Database,
+  Download
 } from "lucide-react";
 import {
   Sidebar,
@@ -49,6 +50,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AICopilot from "@/components/AICopilot";
+import { NotificationBell } from "@/components/NotificationBell";
+import { ExportAllButton } from "@/components/ExportButton";
 
 const navigationItems = [
   // === Dashboard ===
