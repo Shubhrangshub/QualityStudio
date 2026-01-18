@@ -285,14 +285,12 @@ export default function Layout({ children, currentPageName }) {
         <Sidebar className="border-r border-gray-200 bg-white">
           <SidebarHeader className="border-b border-gray-200 p-4">
             <div className="flex items-center gap-3">
-              <img 
-                src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/690dcbb97a34d8fc04b647f6/756aaa8c1_image.png"
-                alt="Quality Logo"
-                className="w-16 h-16 object-contain"
-              />
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-xl flex items-center justify-center shadow-lg">
+                <Shield className="w-7 h-7 text-white" />
+              </div>
               <div>
-                <h2 className="font-bold text-gray-900 text-lg">RCA & CAPA Studio</h2>
-                <p className="text-xs text-gray-500">Window Films / PPF</p>
+                <h2 className="font-bold text-gray-900 text-lg">QualityStudio</h2>
+                <p className="text-xs text-gray-500">Quality Management System</p>
               </div>
             </div>
           </SidebarHeader>
