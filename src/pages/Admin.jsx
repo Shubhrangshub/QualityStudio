@@ -170,28 +170,27 @@ export default function Admin() {
         
         // Migration Instructions
         migrationGuide: {
-          step1: "Extract app code as ZIP from Base44 dashboard (gets all pages, components, entities folder with schemas)",
+          step1: "Use the Dockerfiles and docker-compose.yml provided in the repository",
           step2: "Download this JSON file (contains all data records)",
-          step3: "Set up your backend (Node.js + PostgreSQL recommended)",
-          step4_schemas: "Use the entity JSON files from the ZIP (entities/*.json) to create database tables",
+          step3: "Set up your backend using the provided FastAPI backend",
+          step4_schemas: "Database schemas are defined in the backend - MongoDB collections are auto-created",
           step5_data: "Use the 'data' section from this file to insert all records",
-          step6: "Replace api.entities.* API calls with your own API endpoints",
-          step7: "Deploy frontend code to your server",
+          step6: "Deploy using Docker Compose or your preferred cloud provider",
+          step7: "Configure environment variables as documented",
           
           databaseSetup: {
-            recommended: "PostgreSQL 14+",
-            alternative: "MySQL 8+, MongoDB",
-            note: "All entity schemas are JSON Schema format - convert to your database's schema format"
+            recommended: "MongoDB (via Docker Compose)",
+            alternative: "MongoDB Atlas for cloud deployments",
+            note: "All entity schemas are defined in the FastAPI backend models"
           },
           
           backendFramework: {
-            recommended: "Node.js + Express + Sequelize/TypeORM",
-            alternative: "Python Django/FastAPI, Java Spring Boot",
-            note: "Implement CRUD endpoints matching api.entities.* API structure"
+            recommended: "FastAPI (Python) - already implemented",
+            note: "Backend is fully functional with JWT authentication"
           },
           
           authentication: {
-            note: "User authentication is handled by Base44 - you'll need to implement your own auth system (JWT, OAuth, etc.)",
+            note: "JWT-based authentication is already implemented in the backend",
             userEntity: "User records are included in the export"
           }
         }
@@ -997,8 +996,8 @@ export default function Admin() {
                         <li>📊 Record counts and metadata</li>
                       </ul>
                       <br />
-                      <strong>Entity Schemas:</strong> Available in Base44 "Extract as Zip" → entities/ folder<br />
-                      <strong>Complete Package:</strong> This JSON + Extract as Zip = Full migration kit
+                      <strong>Entity Schemas:</strong> Defined in the FastAPI backend models<br />
+                      <strong>Complete Package:</strong> This JSON + Docker deployment = Full migration kit
                     </AlertDescription>
                   </Alert>
 
@@ -1115,15 +1114,14 @@ export default function Admin() {
                   <Alert className="bg-yellow-50 border-yellow-300">
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
                     <AlertDescription className="text-yellow-900 text-xs">
-                      <strong>Quick Start Migration:</strong><br />
-                      1. <strong>Download Frontend:</strong> Base44 Dashboard → Extract as Zip (gets all React code)<br />
-                      2. <strong>Download Backend:</strong> Click button above (gets schemas + data + guide)<br />
-                      3. <strong>Setup Database:</strong> PostgreSQL/MySQL - use schemas to create tables<br />
-                      4. <strong>Import Data:</strong> Use data section to populate tables<br />
-                      5. <strong>Build API:</strong> Node.js/Python - implement CRUD endpoints<br />
-                      6. <strong>Connect:</strong> Replace api.entities.* calls with your API<br />
+                      <strong>Quick Start Deployment:</strong><br />
+                      1. <strong>Clone Repository:</strong> Get the complete codebase with frontend and backend<br />
+                      2. <strong>Configure Environment:</strong> Set up .env files with your credentials<br />
+                      3. <strong>Deploy with Docker:</strong> Use docker-compose up to start all services<br />
+                      4. <strong>Import Data:</strong> Use the data export to populate your database<br />
+                      5. <strong>Configure DNS:</strong> Point your domain to the deployed services<br />
                       <br />
-                      <strong>Detailed instructions included in the JSON export file!</strong>
+                      <strong>Detailed deployment guides available in /docs folder!</strong>
                     </AlertDescription>
                   </Alert>
                 </CardContent>
