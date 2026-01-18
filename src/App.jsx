@@ -60,69 +60,138 @@ const initializeDemoUsers = () => {
 // Auth Context
 const AuthContext = createContext(null);
 
+// API Base URL
+const API_BASE_URL = window.location.hostname.includes('emergentagent.com')
+  ? '/api'
+  : import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001/api';
+
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     initializeDemoUsers();
-    const storedUser = localStorage.getItem('current_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        localStorage.removeItem('current_user');
+    // Check for existing session
+    const validateSession = async () => {
+      const token = localStorage.getItem('access_token');
+      const storedUser = localStorage.getItem('current_user');
+      
+      if (token && storedUser) {
+        try {
+          // Validate token with backend
+          const response = await fetch(`${API_BASE_URL}/auth/validate-token`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setUser(data.user);
+            localStorage.setItem('current_user', JSON.stringify(data.user));
+          } else {
+            // Token invalid, clear storage
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('current_user');
+          }
+        } catch (e) {
+          // If backend is unreachable, use stored user as fallback
+          console.warn('Token validation failed, using stored user');
+          try {
+            setUser(JSON.parse(storedUser));
+          } catch {
+            localStorage.removeItem('current_user');
+          }
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    
+    validateSession();
   }, []);
 
-  const signup = (email, password, fullName, role = 'operator') => {
-    const users = JSON.parse(localStorage.getItem('qualitystudio_users') || '{}');
-    
-    if (users[email]) {
-      return { success: false, error: 'Email already exists' };
-    }
+  const signup = async (email, password, fullName, role = 'operator') => {
+    try {
+      // Try backend registration first
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name: fullName, role })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('current_user', JSON.stringify(data.user));
+        setUser(data.user);
+        return { success: true, user: data.user };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.detail || 'Registration failed' };
+      }
+    } catch (e) {
+      // Fallback to client-side registration
+      const users = JSON.parse(localStorage.getItem('qualitystudio_users') || '{}');
+      
+      if (users[email]) {
+        return { success: false, error: 'Email already exists' };
+      }
 
-    users[email] = {
-      email,
-      password,
-      name: fullName,
-      role
-    };
-    
-    localStorage.setItem('qualitystudio_users', JSON.stringify(users));
-    
-    const userData = {
-      id: `user_${email.split('@')[0]}`,
-      email,
-      name: fullName,
-      role,
-      is_active: true
-    };
-    
-    setUser(userData);
-    localStorage.setItem('current_user', JSON.stringify(userData));
-    return { success: true, user: userData };
-  };
-
-  const login = (email, password) => {
-    const users = JSON.parse(localStorage.getItem('qualitystudio_users') || '{}');
-    const storedUser = users[email];
-    
-    if (storedUser && storedUser.password === password) {
+      users[email] = { email, password, name: fullName, role };
+      localStorage.setItem('qualitystudio_users', JSON.stringify(users));
+      
       const userData = {
         id: `user_${email.split('@')[0]}`,
-        email: storedUser.email,
-        name: storedUser.name,
-        role: storedUser.role,
+        email,
+        name: fullName,
+        role,
         is_active: true
       };
+      
       setUser(userData);
       localStorage.setItem('current_user', JSON.stringify(userData));
       return { success: true, user: userData };
     }
-    return { success: false, error: 'Invalid email or password' };
+  };
+
+  const login = async (email, password) => {
+    try {
+      // Try backend authentication first
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('current_user', JSON.stringify(data.user));
+        setUser(data.user);
+        return { success: true, user: data.user };
+      } else {
+        const error = await response.json();
+        return { success: false, error: error.detail || 'Invalid credentials' };
+      }
+    } catch (e) {
+      // Fallback to client-side login (for offline/demo mode)
+      const users = JSON.parse(localStorage.getItem('qualitystudio_users') || '{}');
+      const storedUser = users[email];
+      
+      if (storedUser && storedUser.password === password) {
+        const userData = {
+          id: `user_${email.split('@')[0]}`,
+          email: storedUser.email,
+          name: storedUser.name,
+          role: storedUser.role,
+          is_active: true
+        };
+        setUser(userData);
+        localStorage.setItem('current_user', JSON.stringify(userData));
+        return { success: true, user: userData };
+      }
+      return { success: false, error: 'Invalid email or password' };
+    }
   };
 
   const logout = () => {
