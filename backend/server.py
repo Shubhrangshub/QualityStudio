@@ -974,6 +974,272 @@ async def search_knowledge(data: Dict[str, Any]):
     results = await ai_service.search_knowledge_base(query, documents)
     return results
 
+# ============== FILE UPLOAD ENDPOINTS ==============
+from services.file_upload_service import save_upload_file, save_multiple_files, delete_file, list_files
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Create uploads directory
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "/app/uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+@app.post("/api/files/upload", tags=["Files"])
+async def upload_single_file(
+    file: UploadFile = File(...),
+    subdirectory: str = "",
+    current_user: Dict = Depends(get_current_user_optional)
+):
+    """Upload a single file"""
+    user_id = current_user.get("id") if current_user else None
+    result = await save_upload_file(file, subdirectory, 'all', user_id)
+    
+    # Also save to file_upload_history
+    await create_item("file_upload_history", {
+        "fileName": result["original_filename"],
+        "fileType": result["content_type"],
+        "uploadDate": datetime.utcnow(),
+        "uploadedBy": user_id,
+        "fileSize": result["file_size"],
+        "filePath": result["file_path"],
+        "fileUrl": result["file_url"],
+        "status": "completed"
+    })
+    
+    return result
+
+@app.post("/api/files/upload-multiple", tags=["Files"])
+async def upload_multiple_files(
+    files: List[UploadFile] = File(...),
+    subdirectory: str = "",
+    current_user: Dict = Depends(get_current_user_optional)
+):
+    """Upload multiple files"""
+    user_id = current_user.get("id") if current_user else None
+    results = await save_multiple_files(files, subdirectory, 'all', user_id)
+    return {"files": results, "total": len(results)}
+
+@app.get("/api/files/list", tags=["Files"])
+async def list_uploaded_files(subdirectory: str = ""):
+    """List all uploaded files"""
+    files = list_files(subdirectory)
+    return {"files": files, "total": len(files)}
+
+@app.delete("/api/files/{filename}", tags=["Files"])
+async def delete_uploaded_file(filename: str, subdirectory: str = ""):
+    """Delete an uploaded file"""
+    file_path = os.path.join(UPLOAD_DIR, subdirectory, filename) if subdirectory else os.path.join(UPLOAD_DIR, filename)
+    success = await delete_file(file_path)
+    if not success:
+        raise HTTPException(status_code=404, detail="File not found")
+    return {"message": "File deleted successfully"}
+
+# Serve uploaded files
+@app.get("/uploads/{file_path:path}", tags=["Files"])
+async def serve_uploaded_file(file_path: str):
+    """Serve uploaded files"""
+    full_path = os.path.join(UPLOAD_DIR, file_path)
+    if not os.path.exists(full_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(full_path)
+
+# ============== EMAIL NOTIFICATION ENDPOINTS ==============
+from services.email_service import email_service
+
+@app.post("/api/notifications/email/test", tags=["Notifications"])
+async def test_email_notification(
+    data: Dict[str, Any],
+    current_user: Dict = Depends(get_current_user_required)
+):
+    """Send a test email notification (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    to_emails = data.get("to_emails", [current_user.get("email")])
+    subject = data.get("subject", "Test Email from QualityStudio")
+    body = data.get("body", "<h1>Test Email</h1><p>This is a test email from QualityStudio.</p>")
+    
+    result = await email_service.send_email(to_emails, subject, body)
+    return result
+
+@app.post("/api/notifications/email/critical-defect", tags=["Notifications"])
+async def send_critical_defect_notification(
+    data: Dict[str, Any],
+    current_user: Dict = Depends(get_current_user_optional)
+):
+    """Send critical defect email notification"""
+    to_emails = data.get("to_emails", [])
+    if not to_emails:
+        return {"success": False, "error": "No recipients specified"}
+    
+    result = await email_service.send_critical_defect_alert(
+        to_emails,
+        data.get("ticket_id", ""),
+        data.get("defect_type", ""),
+        data.get("line", ""),
+        data.get("description", ""),
+        current_user.get("name", "Unknown") if current_user else "System",
+        data.get("app_url", "https://qualitystudio.com")
+    )
+    return result
+
+@app.get("/api/notifications/email/status", tags=["Notifications"])
+async def get_email_service_status():
+    """Check email service configuration status"""
+    return {
+        "enabled": email_service.enabled,
+        "smtp_host": email_service.smtp_host,
+        "smtp_port": email_service.smtp_port,
+        "email_from": email_service.email_from
+    }
+
+# ============== WEBSOCKET REAL-TIME NOTIFICATIONS ==============
+from services.websocket_service import manager, send_notification, NotificationType
+from fastapi import WebSocket, WebSocketDisconnect
+
+@app.websocket("/ws/notifications")
+async def websocket_notifications(websocket: WebSocket, user_id: Optional[str] = None):
+    """WebSocket endpoint for real-time notifications"""
+    await manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Receive messages from client (for subscriptions, etc.)
+            data = await websocket.receive_json()
+            
+            # Handle subscription requests
+            if data.get("action") == "subscribe":
+                room = data.get("room", "global")
+                manager.subscribe_to_room(websocket, room)
+                await manager.send_personal_message(websocket, {
+                    "type": "subscribed",
+                    "room": room
+                })
+            elif data.get("action") == "unsubscribe":
+                room = data.get("room", "global")
+                manager.unsubscribe_from_room(websocket, room)
+                await manager.send_personal_message(websocket, {
+                    "type": "unsubscribed",
+                    "room": room
+                })
+            elif data.get("action") == "ping":
+                await manager.send_personal_message(websocket, {"type": "pong"})
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_id)
+
+@app.post("/api/notifications/broadcast", tags=["Notifications"])
+async def broadcast_notification(
+    data: Dict[str, Any],
+    current_user: Dict = Depends(get_current_user_required)
+):
+    """Broadcast a notification to all connected clients (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    await send_notification(
+        data.get("type", NotificationType.SYSTEM_ALERT),
+        data.get("title", "Notification"),
+        data.get("message", ""),
+        data.get("data"),
+        data.get("user_ids"),
+        data.get("room"),
+        data.get("priority", "normal")
+    )
+    return {"success": True, "message": "Notification sent"}
+
+# ============== EXPORT ENDPOINTS (PDF/Excel) ==============
+from services.export_service import pdf_exporter, excel_exporter
+from fastapi.responses import StreamingResponse
+import io
+
+@app.get("/api/export/defects/pdf", tags=["Export"])
+async def export_defects_pdf(current_user: Dict = Depends(get_current_user_optional)):
+    """Export defects report as PDF"""
+    defects = await get_items("defect_tickets", "-created_date", 500)
+    pdf_bytes = pdf_exporter.create_defects_report(defects, "Defect Report")
+    
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=defects_report.pdf"}
+    )
+
+@app.get("/api/export/defects/excel", tags=["Export"])
+async def export_defects_excel(current_user: Dict = Depends(get_current_user_optional)):
+    """Export defects as Excel spreadsheet"""
+    defects = await get_items("defect_tickets", "-created_date", 1000)
+    excel_bytes = excel_exporter.create_defects_export(defects)
+    
+    return StreamingResponse(
+        io.BytesIO(excel_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=defects_export.xlsx"}
+    )
+
+@app.get("/api/export/complaints/pdf", tags=["Export"])
+async def export_complaints_pdf(current_user: Dict = Depends(get_current_user_optional)):
+    """Export complaints report as PDF"""
+    complaints = await get_items("customer_complaints", "-created_date", 500)
+    pdf_bytes = pdf_exporter.create_complaints_report(complaints)
+    
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=complaints_report.pdf"}
+    )
+
+@app.get("/api/export/complaints/excel", tags=["Export"])
+async def export_complaints_excel(current_user: Dict = Depends(get_current_user_optional)):
+    """Export complaints as Excel spreadsheet"""
+    complaints = await get_items("customer_complaints", "-created_date", 1000)
+    excel_bytes = excel_exporter.create_complaints_export(complaints)
+    
+    return StreamingResponse(
+        io.BytesIO(excel_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=complaints_export.xlsx"}
+    )
+
+@app.get("/api/export/kpis/pdf", tags=["Export"])
+async def export_kpis_pdf(current_user: Dict = Depends(get_current_user_optional)):
+    """Export KPIs report as PDF"""
+    kpis = await get_items("kpis", "-recordDate", 365)
+    pdf_bytes = pdf_exporter.create_kpi_report(kpis)
+    
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=kpi_report.pdf"}
+    )
+
+@app.get("/api/export/kpis/excel", tags=["Export"])
+async def export_kpis_excel(current_user: Dict = Depends(get_current_user_optional)):
+    """Export KPIs as Excel spreadsheet"""
+    kpis = await get_items("kpis", "-recordDate", 1000)
+    excel_bytes = excel_exporter.create_kpi_export(kpis)
+    
+    return StreamingResponse(
+        io.BytesIO(excel_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=kpi_export.xlsx"}
+    )
+
+@app.get("/api/export/full/excel", tags=["Export"])
+async def export_full_excel(current_user: Dict = Depends(get_current_user_optional)):
+    """Export all data as Excel workbook with multiple sheets"""
+    defects = await get_items("defect_tickets", "-created_date", 1000)
+    complaints = await get_items("customer_complaints", "-created_date", 1000)
+    rcas = await get_items("rca_records", "-created_date", 1000)
+    capas = await get_items("capa_plans", "-created_date", 1000)
+    kpis = await get_items("kpis", "-recordDate", 365)
+    
+    excel_bytes = excel_exporter.create_full_export(defects, complaints, rcas, capas, kpis)
+    
+    return StreamingResponse(
+        io.BytesIO(excel_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=qualitystudio_full_export.xlsx"}
+    )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
