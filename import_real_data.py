@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Import REAL production data from Base44 export
+Import REAL production data from database export
 This will replace demo data with actual historical records
 """
 from pymongo import MongoClient
