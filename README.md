@@ -1,12 +1,12 @@
-# Quality Studio - RCA/CAPA Workflow Application
+# QualityStudio - Quality Management System
 
-An end-to-end quality management application for window film and PPF lamination, featuring defect tracking, AI-powered root cause analysis, experiment design, and SOP generation.
+A comprehensive Quality Management System (QMS) for manufacturing, featuring defect tracking, AI-powered root cause analysis, CAPA workflow management, and real-time notifications.
 
 ## 📋 Overview
 
-Quality Studio is a comprehensive Quality Management System (QMS) built with React and powered by Base44. It provides:
+QualityStudio is a full-stack QMS application built with React (frontend) and FastAPI (backend), using MongoDB for data storage. It provides:
 
-- **Customer Complaint Management** - Track and manage customer complaints with full workflow
+- **Customer Complaint Management** - Track and manage customer complaints with full QFIR workflow
 - **Defect Tracking** - Comprehensive defect intake and management system
 - **Root Cause Analysis (RCA)** - AI-powered RCA with Ishikawa diagrams and 5 Whys
 - **CAPA Workflow** - Corrective and Preventive Action planning and tracking
@@ -15,280 +15,263 @@ Quality Studio is a comprehensive Quality Management System (QMS) built with Rea
 - **SOP Library** - Standard Operating Procedures management
 - **Design of Experiments (DoE)** - Process optimization experiments
 - **Knowledge Base** - Searchable documentation and knowledge management
-- **Equipment Tracking** - Equipment management and maintenance
-- **Traceability** - Full traceability from complaint → defect → RCA → CAPA
+- **Real-time Notifications** - WebSocket-based live alerts
+- **Export Reports** - PDF and Excel export for all data
+- **Full Traceability** - Complaint → QFIR → Defect → RCA → CAPA chain
 
-## 🚀 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 16+ and npm/yarn
-- Base44 account and App ID
-- Git
+- Docker and Docker Compose (recommended)
+- OR Node.js 18+, Python 3.11+, MongoDB 7.0+
 
-### Installation
-
-1. **Clone or extract the repository**
-   ```bash
-   cd quality-studio
-   ```
-
-2. **Install dependencies**
-   ```bash
-   yarn install
-   # or
-   npm install
-   ```
-
-3. **Configure Base44 credentials**
-   
-   Copy the `.env.example` file to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and add your Base44 credentials:
-   ```env
-   VITE_BASE44_APP_ID=your-app-id-from-base44
-   VITE_BASE44_BACKEND_URL=https://api.base44.com
-   ```
-   
-   **To get your Base44 App ID:**
-   - Log in to your Base44 dashboard
-   - Navigate to your Quality Studio app
-   - Find the App ID in the app settings
-
-4. **Start the development server**
-   ```bash
-   yarn dev
-   # or
-   npm run dev
-   ```
-   
-   The application will be available at `http://localhost:5173`
-
-## 🏗️ Production Deployment
-
-### Build for Production
+### Option 1: Docker Deployment (Recommended)
 
 ```bash
-yarn build
-# or
-npm run build
+# Clone the repository
+git clone <your-repo-url>
+cd qualitystudio
+
+# Configure environment
+cp backend/.env.example backend/.env
+# Edit backend/.env with your settings
+
+# Start all services
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:80
+# Backend API: http://localhost:8001
+# API Docs: http://localhost:8001/docs
 ```
 
-This creates an optimized production build in the `dist/` directory.
+### Option 2: Manual Installation
 
-### Deploy to Your Cloud
-
-The application can be deployed to any static hosting service:
-
-#### Option 1: Vercel
+#### Backend Setup
 ```bash
-npm install -g vercel
-vercel --prod
+cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your MongoDB URL and other settings
+
+# Start the server
+uvicorn server:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-#### Option 2: Netlify
+#### Frontend Setup
 ```bash
-npm install -g netlify-cli
-netlify deploy --prod --dir=dist
-```
+# From root directory
+yarn install
+# or: npm install
 
-#### Option 3: AWS S3 + CloudFront
-```bash
-# Build the app
-yarn build
-
-# Upload to S3
-aws s3 sync dist/ s3://your-bucket-name --delete
-
-# Invalidate CloudFront cache
-aws cloudfront create-invalidation --distribution-id YOUR_DIST_ID --paths "/*"
-```
-
-#### Option 4: Docker
-```dockerfile
-FROM node:18-alpine as build
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### Environment Variables for Production
-
-Make sure to set these environment variables in your hosting platform:
-
-- `VITE_BASE44_APP_ID` - Your Base44 App ID
-- `VITE_BASE44_BACKEND_URL` - Base44 API URL (https://api.base44.com)
-
-## 📁 Project Structure
-
-```
-quality-studio/
-├── src/
-│   ├── api/              # Base44 client configuration
-│   ├── assets/           # Images, icons, static files
-│   ├── components/       # Reusable React components
-│   │   ├── ui/          # UI components (buttons, cards, etc.)
-│   │   ├── dashboard/   # Dashboard-specific components
-│   │   ├── defect/      # Defect tracking components
-│   │   ├── capa/        # CAPA workflow components
-│   │   ├── rca/         # RCA analysis components
-│   │   ├── qfir/        # QFIR form components
-│   │   ├── admin/       # Admin panel components
-│   │   └── ...          # Other feature components
-│   ├── hooks/           # Custom React hooks
-│   ├── lib/             # Utility libraries and helpers
-│   ├── pages/           # Application pages
-│   ├── utils/           # Utility functions
-│   ├── App.jsx          # Main application component
-│   ├── Layout.jsx       # Application layout wrapper
-│   ├── main.jsx         # Application entry point
-│   └── pages.config.js  # Pages configuration
-├── public/              # Public static assets
-├── .env                 # Environment variables (not committed)
-├── .env.example         # Example environment variables
-├── package.json         # Dependencies and scripts
-├── vite.config.js       # Vite configuration
-└── README.md           # This file
+# Start development server
+yarn dev
+# or: npm run dev
 ```
 
 ## 🔧 Configuration
 
-### Base44 Integration
+### Environment Variables
 
-This application uses the Base44 SDK for backend functionality. The configuration is in:
-- `src/api/base44Client.js` - Base44 client initialization
-- `src/lib/app-params.js` - App parameter management
-- `src/lib/entities.js` - Database entity definitions
+**Backend (`backend/.env`):**
+```env
+# MongoDB
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=quality_studio
 
-### Customization
+# Security
+SECRET_KEY=your-secure-secret-key
 
-To customize the application:
+# AI Service (OpenAI GPT-5.2)
+EMERGENT_LLM_KEY=your-emergent-llm-key
 
-1. **Branding**: Edit `index.html` to update the title and favicon
-2. **Styling**: Modify `src/index.css` and Tailwind configuration in `tailwind.config.js`
-3. **Pages**: Add/remove pages in `src/pages.config.js`
-4. **Components**: Customize components in `src/components/`
+# Email Notifications (Optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+EMAIL_FROM=noreply@qualitystudio.com
+```
+
+**Frontend (`.env`):**
+```env
+VITE_API_BASE_URL=http://localhost:8001/api
+```
+
+## 📁 Project Structure
+
+```
+qualitystudio/
+├── backend/
+│   ├── auth/               # Authentication services
+│   ├── services/           # Business logic services
+│   │   ├── ai_service.py   # AI-powered analysis (GPT-5.2)
+│   │   ├── export_service.py    # PDF/Excel generation
+│   │   ├── email_service.py     # Email notifications
+│   │   ├── websocket_service.py # Real-time notifications
+│   │   └── file_upload_service.py
+│   ├── server.py           # FastAPI application
+│   ├── requirements.txt    # Python dependencies
+│   └── Dockerfile
+├── src/
+│   ├── api/                # API client
+│   ├── components/         # React components
+│   │   ├── ui/            # Shadcn UI components
+│   │   ├── ExportButton.jsx
+│   │   └── NotificationBell.jsx
+│   ├── pages/              # Application pages
+│   ├── styles/             # CSS styles
+│   ├── App.jsx             # Main application
+│   └── Layout.jsx          # Navigation layout
+├── docker-compose.yml      # Docker orchestration
+├── Dockerfile              # Frontend container
+├── nginx.conf              # Nginx configuration
+└── README.md
+```
+
+## 🔐 Authentication
+
+### Demo Credentials
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | shubhrangshub@gmail.com | admin123 |
+| Admin | admin@qualitystudio.com | admin123 |
+| Inspector | inspector@qualitystudio.com | inspector123 |
+| Engineer | engineer@qualitystudio.com | engineer123 |
+| Sales | sales@qualitystudio.com | sales123 |
+| Operator | operator@qualitystudio.com | operator123 |
+
+### Role-Based Access
+
+- **Admin** - Full system access
+- **Quality Inspector** - Defect reporting, inspections
+- **Quality Engineer** - RCA, CAPA, process optimization
+- **Sales** - Customer complaints, quality metrics view
+- **Operator** - Production defect reporting, process logging
 
 ## 🎯 Key Features
 
-### 1. Dashboard
-- Real-time quality metrics and KPIs
-- Defect Pareto charts
-- Process run statistics
-- CAPA tracking
-- Pending QFIR alerts
+### Dashboard
+- Real-time KPIs (Cpk, First Pass Yield, Defect PPM)
+- Alert widgets for critical issues
+- Workflow overview cards
 
-### 2. Defect Management
-- Multi-step defect intake with images
-- AI-powered defect classification
-- Severity and root cause tracking
-- Link defects to customer complaints
+### AI-Powered Analysis
+- GPT-5.2 powered RCA suggestions
+- Automated defect classification
+- CAPA action generation
+- Trend prediction
 
-### 3. Root Cause Analysis (RCA)
-- Fishbone (Ishikawa) diagrams
-- 5 Whys analysis
-- AI-powered RCA suggestions
-- Hypothesis testing
-- Comprehensive RCA reports
+### Export & Reporting
+- PDF reports (defects, complaints, KPIs)
+- Excel spreadsheets with multiple sheets
+- Full data export
 
-### 4. CAPA Workflow
-- Corrective and preventive action planning
-- Task assignment and tracking
-- Effectiveness tracking
-- FMEA integration
-- PDF export for regulatory compliance
+### Real-time Notifications
+- WebSocket-based live alerts
+- Critical defect notifications
+- CAPA overdue alerts
 
-### 5. Process Monitoring
-- Process run data upload (CSV/Excel)
-- Parameter tracking and analysis
-- Golden batch comparison
-- SPC capability analysis
-- Trend analysis and charts
+## 📡 API Endpoints
 
-### 6. Data Management
-- Bulk data upload
-- Database export
-- Traceability views
-- Knowledge search
+### Authentication
+- `POST /api/auth/login` - Login
+- `POST /api/auth/register` - Register
+- `GET /api/auth/me` - Current user
+
+### Data Management
+- `/api/customer_complaints` - CRUD
+- `/api/defect_tickets` - CRUD
+- `/api/rca_records` - CRUD
+- `/api/capa_plans` - CRUD
+- `/api/process_runs` - CRUD
+- `/api/sops` - CRUD
+- `/api/kpis` - CRUD
+
+### AI Services
+- `POST /api/ai/rca-suggestions` - Get RCA suggestions
+- `POST /api/ai/classify-defect` - Classify defects
+- `POST /api/ai/generate-capa` - Generate CAPA actions
+
+### Export
+- `GET /api/export/defects/pdf` - Defects PDF
+- `GET /api/export/defects/excel` - Defects Excel
+- `GET /api/export/full/excel` - Full data export
+
+### Files
+- `POST /api/files/upload` - Upload file
+- `GET /api/files/list` - List files
+
+### WebSocket
+- `WS /ws/notifications` - Real-time notifications
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18 + Vite
-- **UI Components**: Radix UI + Tailwind CSS
-- **Routing**: React Router v7
-- **State Management**: TanStack Query (React Query)
-- **Backend**: Base44 SDK
-- **Forms**: React Hook Form + Zod validation
-- **Charts**: Recharts
-- **Icons**: Lucide React
-- **Animation**: Framer Motion
+### Frontend
+- React 18 + Vite
+- Tailwind CSS + Shadcn UI
+- React Router v7
+- TanStack Query
+- Recharts
 
-## 📚 Usage Guide
+### Backend
+- FastAPI (Python)
+- Motor (async MongoDB driver)
+- JWT Authentication
+- OpenAI GPT-5.2 (via Emergent LLM)
+- ReportLab (PDF) + OpenPyXL (Excel)
 
-### For Quality Managers
+### Infrastructure
+- MongoDB 7.0
+- Docker + Docker Compose
+- Nginx (production)
 
-1. **Monitor Dashboard** - View real-time quality metrics
-2. **Review Complaints** - Check pending QFIR forms
-3. **Track CAPAs** - Monitor corrective actions
-4. **Generate Reports** - Export data for compliance
+## 🏗️ Production Deployment
 
-### For Production Teams
+### Using Docker Compose
 
-1. **Report Defects** - Use Defect Intake page
-2. **Log Process Runs** - Upload process data
-3. **Access SOPs** - View standard procedures
-4. **Search Knowledge Base** - Find solutions
+```bash
+# Production build
+docker-compose -f docker-compose.yml up -d --build
 
-### For Engineers
+# View logs
+docker-compose logs -f
 
-1. **Conduct RCA** - Use RCA Studio
-2. **Design Experiments** - Use DoE Designer
-3. **Analyze Trends** - View SPC charts
-4. **Compare Batches** - Golden Batch analysis
+# Stop services
+docker-compose down
+```
 
-## 🔒 Security Notes
+### Manual Deployment
 
-- Never commit `.env` file to version control
-- Keep Base44 App ID and credentials secure
-- Use environment variables for sensitive data
-- Enable authentication in Base44 dashboard if needed
+1. Build frontend: `yarn build`
+2. Serve `dist/` with Nginx or similar
+3. Run backend with Gunicorn/Uvicorn
+4. Configure reverse proxy
 
 ## 🐛 Troubleshooting
 
-### Issue: "Cannot connect to Base44"
-- Check your `.env` file has correct credentials
-- Verify Base44 App ID is correct
-- Ensure internet connectivity
+### Cannot connect to MongoDB
+- Verify MongoDB is running
+- Check `MONGO_URL` in backend/.env
+- Ensure network connectivity
 
-### Issue: "Page not found"
-- Check routing in `src/pages.config.js`
-- Verify all page components exist
-- Clear browser cache
+### AI features not working
+- Verify `EMERGENT_LLM_KEY` is set
+- Check backend logs for API errors
 
-### Issue: "Dependencies not installed"
-- Run `yarn install` or `npm install`
-- Delete `node_modules` and reinstall
-- Check Node.js version (16+ required)
-
-## 📞 Support
-
-For Base44-specific issues:
-- Base44 Documentation: https://docs.base44.com
-- Base44 Support: support@base44.com
-
-For application issues:
-- Check GitHub issues
-- Contact your development team
+### WebSocket disconnecting
+- Check firewall settings
+- Verify WebSocket proxy configuration
 
 ## 📄 License
 
@@ -296,4 +279,4 @@ Proprietary - All rights reserved
 
 ---
 
-**Built with ❤️ using Base44 Platform**
+**Built for Quality Excellence**
