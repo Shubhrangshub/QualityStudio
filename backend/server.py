@@ -410,16 +410,16 @@ async def filter_customer_complaints(filters: Dict[str, Any], sort: Optional[str
 # DefectTicket endpoints
 @app.get("/api/defect_tickets", tags=["DefectTicket"])
 async def list_defect_tickets(sort: Optional[str] = None, limit: int = 100):
-    return await get_items("DefectTicket", sort, limit)
+    return await get_items("defect_tickets", sort, limit)
 
 @app.post("/api/defect_tickets", tags=["DefectTicket"])
 async def create_defect_ticket(item: DefectTicket):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    return await create_item("DefectTicket", item_dict)
+    return await create_item("defect_tickets", item_dict)
 
 @app.get("/api/defect_tickets/{item_id}", tags=["DefectTicket"])
 async def get_defect_ticket(item_id: str):
-    item = await get_item_by_id("DefectTicket", item_id)
+    item = await get_item_by_id("defect_tickets", item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -427,35 +427,35 @@ async def get_defect_ticket(item_id: str):
 @app.put("/api/defect_tickets/{item_id}", tags=["DefectTicket"])
 async def update_defect_ticket(item_id: str, item: DefectTicket):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    updated = await update_item("DefectTicket", item_id, item_dict)
+    updated = await update_item("defect_tickets", item_id, item_dict)
     if not updated:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
 
 @app.delete("/api/defect_tickets/{item_id}", tags=["DefectTicket"])
 async def delete_defect_ticket(item_id: str):
-    deleted = await delete_item("DefectTicket", item_id)
+    deleted = await delete_item("defect_tickets", item_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully"}
 
 @app.post("/api/defect_tickets/filter", tags=["DefectTicket"])
 async def filter_defect_tickets(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
-    return await filter_items("DefectTicket", filters, sort, limit)
+    return await filter_items("defect_tickets", filters, sort, limit)
 
 # RCARecord endpoints
 @app.get("/api/rca_records", tags=["RCARecord"])
 async def list_rca_records(sort: Optional[str] = None, limit: int = 100):
-    return await get_items("RCARecord", sort, limit)
+    return await get_items("rca_records", sort, limit)
 
 @app.post("/api/rca_records", tags=["RCARecord"])
 async def create_rca_record(item: RCARecord):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    return await create_item("RCARecord", item_dict)
+    return await create_item("rca_records", item_dict)
 
 @app.get("/api/rca_records/{item_id}", tags=["RCARecord"])
 async def get_rca_record(item_id: str):
-    item = await get_item_by_id("RCARecord", item_id)
+    item = await get_item_by_id("rca_records", item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -463,35 +463,35 @@ async def get_rca_record(item_id: str):
 @app.put("/api/rca_records/{item_id}", tags=["RCARecord"])
 async def update_rca_record(item_id: str, item: RCARecord):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    updated = await update_item("RCARecord", item_id, item_dict)
+    updated = await update_item("rca_records", item_id, item_dict)
     if not updated:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
 
 @app.delete("/api/rca_records/{item_id}", tags=["RCARecord"])
 async def delete_rca_record(item_id: str):
-    deleted = await delete_item("RCARecord", item_id)
+    deleted = await delete_item("rca_records", item_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully"}
 
 @app.post("/api/rca_records/filter", tags=["RCARecord"])
 async def filter_rca_records(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
-    return await filter_items("RCARecord", filters, sort, limit)
+    return await filter_items("rca_records", filters, sort, limit)
 
 # CAPAPlan endpoints
 @app.get("/api/capa_plans", tags=["CAPAPlan"])
 async def list_capa_plans(sort: Optional[str] = None, limit: int = 100):
-    return await get_items("CAPAPlan", sort, limit)
+    return await get_items("capa_plans", sort, limit)
 
 @app.post("/api/capa_plans", tags=["CAPAPlan"])
 async def create_capa_plan(item: CAPAPlan):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    return await create_item("CAPAPlan", item_dict)
+    return await create_item("capa_plans", item_dict)
 
 @app.get("/api/capa_plans/{item_id}", tags=["CAPAPlan"])
 async def get_capa_plan(item_id: str):
-    item = await get_item_by_id("CAPAPlan", item_id)
+    item = await get_item_by_id("capa_plans", item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -499,35 +499,35 @@ async def get_capa_plan(item_id: str):
 @app.put("/api/capa_plans/{item_id}", tags=["CAPAPlan"])
 async def update_capa_plan(item_id: str, item: CAPAPlan):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    updated = await update_item("CAPAPlan", item_id, item_dict)
+    updated = await update_item("capa_plans", item_id, item_dict)
     if not updated:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
 
 @app.delete("/api/capa_plans/{item_id}", tags=["CAPAPlan"])
 async def delete_capa_plan(item_id: str):
-    deleted = await delete_item("CAPAPlan", item_id)
+    deleted = await delete_item("capa_plans", item_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully"}
 
 @app.post("/api/capa_plans/filter", tags=["CAPAPlan"])
 async def filter_capa_plans(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
-    return await filter_items("CAPAPlan", filters, sort, limit)
+    return await filter_items("capa_plans", filters, sort, limit)
 
 # ProcessRun endpoints
 @app.get("/api/process_runs", tags=["ProcessRun"])
 async def list_process_runs(sort: Optional[str] = None, limit: int = 100):
-    return await get_items("ProcessRun", sort, limit)
+    return await get_items("process_runs", sort, limit)
 
 @app.post("/api/process_runs", tags=["ProcessRun"])
 async def create_process_run(item: ProcessRun):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    return await create_item("ProcessRun", item_dict)
+    return await create_item("process_runs", item_dict)
 
 @app.get("/api/process_runs/{item_id}", tags=["ProcessRun"])
 async def get_process_run(item_id: str):
-    item = await get_item_by_id("ProcessRun", item_id)
+    item = await get_item_by_id("process_runs", item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -535,35 +535,35 @@ async def get_process_run(item_id: str):
 @app.put("/api/process_runs/{item_id}", tags=["ProcessRun"])
 async def update_process_run(item_id: str, item: ProcessRun):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    updated = await update_item("ProcessRun", item_id, item_dict)
+    updated = await update_item("process_runs", item_id, item_dict)
     if not updated:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
 
 @app.delete("/api/process_runs/{item_id}", tags=["ProcessRun"])
 async def delete_process_run(item_id: str):
-    deleted = await delete_item("ProcessRun", item_id)
+    deleted = await delete_item("process_runs", item_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully"}
 
 @app.post("/api/process_runs/filter", tags=["ProcessRun"])
 async def filter_process_runs(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
-    return await filter_items("ProcessRun", filters, sort, limit)
+    return await filter_items("process_runs", filters, sort, limit)
 
 # GoldenBatch endpoints
 @app.get("/api/golden_batches", tags=["GoldenBatch"])
 async def list_golden_batches(sort: Optional[str] = None, limit: int = 100):
-    return await get_items("GoldenBatch", sort, limit)
+    return await get_items("golden_batches", sort, limit)
 
 @app.post("/api/golden_batches", tags=["GoldenBatch"])
 async def create_golden_batch(item: GoldenBatch):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    return await create_item("GoldenBatch", item_dict)
+    return await create_item("golden_batches", item_dict)
 
 @app.get("/api/golden_batches/{item_id}", tags=["GoldenBatch"])
 async def get_golden_batch(item_id: str):
-    item = await get_item_by_id("GoldenBatch", item_id)
+    item = await get_item_by_id("golden_batches", item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -571,21 +571,21 @@ async def get_golden_batch(item_id: str):
 @app.put("/api/golden_batches/{item_id}", tags=["GoldenBatch"])
 async def update_golden_batch(item_id: str, item: GoldenBatch):
     item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
-    updated = await update_item("GoldenBatch", item_id, item_dict)
+    updated = await update_item("golden_batches", item_id, item_dict)
     if not updated:
         raise HTTPException(status_code=404, detail="Item not found")
     return updated
 
 @app.delete("/api/golden_batches/{item_id}", tags=["GoldenBatch"])
 async def delete_golden_batch(item_id: str):
-    deleted = await delete_item("GoldenBatch", item_id)
+    deleted = await delete_item("golden_batches", item_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Item not found")
     return {"message": "Item deleted successfully"}
 
 @app.post("/api/golden_batches/filter", tags=["GoldenBatch"])
 async def filter_golden_batches(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
-    return await filter_items("GoldenBatch", filters, sort, limit)
+    return await filter_items("golden_batches", filters, sort, limit)
 
 # SOP endpoints
 @app.get("/api/sops", tags=["SOP"])
