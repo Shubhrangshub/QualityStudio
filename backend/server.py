@@ -311,6 +311,12 @@ async def get_all_roles():
 async def get_demo_users():
     """Get demo user credentials for testing"""
     return {
+        "primary_admin": {
+            "email": "shubhrangshub@gmail.com",
+            "password": "admin123",
+            "role": "admin",
+            "description": "Primary Admin - Full system access"
+        },
         "admin": {
             "email": "admin@qualitystudio.com",
             "password": "admin123",
