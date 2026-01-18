@@ -122,10 +122,10 @@ export default function Admin() {
         exportDateIST: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
         appName: "RCA & CAPA Studio - Window Films / PPF Quality Management",
         version: "1.0",
-        platform: "Base44",
+        platform: "QualityStudio",
         
         // Note about schemas
-        schemasNote: "Entity schemas are available in the Base44 'Extract as ZIP' download in the entities/ folder. Each entity has a JSON Schema definition file (e.g., entities/DefectTicket.json).",
+        schemasNote: "Entity schemas are defined in the backend models. Each entity has corresponding API endpoints.",
         
         // All Data Records
         data: {

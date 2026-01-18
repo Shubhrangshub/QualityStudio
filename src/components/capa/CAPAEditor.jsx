@@ -611,7 +611,7 @@ export default function CAPAEditor({ capa, onUpdate }) {
           data: capa
         }}
         onLink={async (docId) => {
-          // Assuming 'base44' is an available global or imported object for data operations
+          // Using the API client for data operations
           // In a real application, this would typically be an API call or a service function.
           const currentDoc = (await api.entities.KnowledgeDocument.filter({id: docId}))[0];
           const updatedLinkedCapaIds = [...(currentDoc.linkedCAPAIds || []), capa.id];

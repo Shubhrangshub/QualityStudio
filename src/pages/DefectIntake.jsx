@@ -113,7 +113,7 @@ export default function DefectIntake() {
   React.useEffect(() => {
     const loadUser = async () => {
       try {
-        // Read user from localStorage instead of Base44
+        // Read user from localStorage
         const storedUser = localStorage.getItem('current_user');
         if (storedUser) {
           const user = JSON.parse(storedUser);
