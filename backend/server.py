@@ -333,6 +333,9 @@ async def get_statistics():
     """Get overall statistics"""
     stats = {}
     for entity_name, (_, collection_name) in COLLECTIONS.items():
+        count = await db[collection_name].count_documents({})
+        stats[entity_name] = count
+    return stats
 
 # AI Service Endpoints
 from services import ai_service_mock
