@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile, Depends
+from fastapi import FastAPI, HTTPException, File, UploadFile, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field
@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from auth.auth_service import AuthService, authenticate_user, get_user_by_id, DEMO_USERS
 from auth.permissions import User, Role, Permission, check_permission, ROLE_DESCRIPTIONS
+from bson import ObjectId
 
 load_dotenv()
 
@@ -18,18 +19,18 @@ app = FastAPI(title="Quality Studio API", version="1.0.0")
 # CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # MongoDB Connection
-MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "quality_studio")
+MONGO_URL = os.environ.get("MONGO_URL")
+DB_NAME = os.environ.get("DB_NAME", "quality_studio")
 
 client = AsyncIOMotorClient(MONGO_URL)
-db = client[DATABASE_NAME]
+db = client[DB_NAME]
 
 # Base Model
 class BaseDBModel(BaseModel):
@@ -39,7 +40,7 @@ class BaseDBModel(BaseModel):
     
     class Config:
         populate_by_name = True
-        json_encoders = {datetime: lambda v: v.isoformat()}
+        json_encoders = {datetime: lambda v: v.isoformat() if v else None}
 
 # Entity Models
 class CustomerComplaint(BaseDBModel):
@@ -162,41 +163,58 @@ class KPI(BaseDBModel):
 
 # Helper functions
 def serialize_doc(doc):
-    """Convert MongoDB document to JSON-serializable dict"""
-    if doc and "_id" in doc:
-        doc["id"] = str(doc["_id"])
-    return doc
-
-async def create_item(collection_name: str, item_data: dict):
-    """Create a new item in collection"""
-    item_data["created_date"] = datetime.utcnow()
-    item_data["updated_date"] = datetime.utcnow()
-    result = await db[collection_name].insert_one(item_data)
-    created_item = await db[collection_name].find_one({"_id": result.inserted_id})
-    return serialize_doc(created_item)
+    """Convert MongoDB document to JSON-serializable dict, excluding _id"""
+    if doc is None:
+        return None
+    result = {}
+    for key, value in doc.items():
+        if key == "_id":
+            result["id"] = str(value)
+        elif isinstance(value, ObjectId):
+            result[key] = str(value)
+        elif isinstance(value, datetime):
+            result[key] = value.isoformat()
+        else:
+            result[key] = value
+    return result
 
 async def get_items(collection_name: str, sort_by: str = None, limit: int = 100):
     """Get all items from collection"""
-    query = {}
-    sort_order = [(sort_by[1:], -1)] if sort_by and sort_by.startswith("-") else [(sort_by, 1)] if sort_by else [("created_date", -1)]
+    if sort_by and sort_by.startswith("-"):
+        sort_order = [(sort_by[1:], -1)]
+    elif sort_by:
+        sort_order = [(sort_by, 1)]
+    else:
+        sort_order = [("created_date", -1)]
     
-    cursor = db[collection_name].find(query).sort(sort_order).limit(limit)
+    cursor = db[collection_name].find({}).sort(sort_order).limit(limit)
     items = await cursor.to_list(length=limit)
     return [serialize_doc(item) for item in items]
 
 async def get_item_by_id(collection_name: str, item_id: str):
     """Get single item by ID"""
-    from bson import ObjectId
     try:
         item = await db[collection_name].find_one({"_id": ObjectId(item_id)})
-        return serialize_doc(item) if item else None
+        return serialize_doc(item)
     except:
         return None
 
+async def create_item(collection_name: str, item_data: dict):
+    """Create a new item in collection"""
+    item_data["created_date"] = datetime.utcnow()
+    item_data["updated_date"] = datetime.utcnow()
+    # Remove id field if present
+    item_data.pop("id", None)
+    item_data.pop("_id", None)
+    result = await db[collection_name].insert_one(item_data)
+    created_item = await db[collection_name].find_one({"_id": result.inserted_id})
+    return serialize_doc(created_item)
+
 async def update_item(collection_name: str, item_id: str, update_data: dict):
     """Update an item"""
-    from bson import ObjectId
     update_data["updated_date"] = datetime.utcnow()
+    update_data.pop("id", None)
+    update_data.pop("_id", None)
     try:
         await db[collection_name].update_one(
             {"_id": ObjectId(item_id)},
@@ -208,7 +226,6 @@ async def update_item(collection_name: str, item_id: str, update_data: dict):
 
 async def delete_item(collection_name: str, item_id: str):
     """Delete an item"""
-    from bson import ObjectId
     try:
         result = await db[collection_name].delete_one({"_id": ObjectId(item_id)})
         return result.deleted_count > 0
@@ -217,7 +234,12 @@ async def delete_item(collection_name: str, item_id: str):
 
 async def filter_items(collection_name: str, filters: dict, sort_by: str = None, limit: int = 100):
     """Filter items based on criteria"""
-    sort_order = [(sort_by[1:], -1)] if sort_by and sort_by.startswith("-") else [(sort_by, 1)] if sort_by else [("created_date", -1)]
+    if sort_by and sort_by.startswith("-"):
+        sort_order = [(sort_by[1:], -1)]
+    elif sort_by:
+        sort_order = [(sort_by, 1)]
+    else:
+        sort_order = [("created_date", -1)]
     
     cursor = db[collection_name].find(filters).sort(sort_order).limit(limit)
     items = await cursor.to_list(length=limit)
@@ -228,14 +250,13 @@ async def filter_items(collection_name: str, filters: dict, sort_by: str = None,
 async def root():
     return {"message": "Quality Studio API", "version": "1.0.0", "status": "running"}
 
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
     try:
         await client.admin.command('ping')
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Database connection failed: {str(e)}")
-
 
 # Authentication endpoints
 security = HTTPBearer()
@@ -253,7 +274,6 @@ async def login(credentials: Dict[str, str]):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    # Create access token
     access_token = AuthService.create_access_token(data={"sub": user["id"]})
     
     return {
@@ -349,89 +369,440 @@ async def get_demo_users():
         }
     }
 
+# ============== EXPLICIT CRUD ENDPOINTS ==============
 
-# Generic CRUD endpoints for each entity
-COLLECTIONS = {
-    "CustomerComplaint": (CustomerComplaint, "customer_complaints"),
-    "DefectTicket": (DefectTicket, "defect_tickets"),
-    "RCARecord": (RCARecord, "rca_records"),
-    "CAPAPlan": (CAPAPlan, "capa_plans"),
-    "ProcessRun": (ProcessRun, "process_runs"),
-    "GoldenBatch": (GoldenBatch, "golden_batches"),
-    "SOP": (SOP, "sops"),
-    "DoE": (DoE, "does"),
-    "KnowledgeDocument": (KnowledgeDocument, "knowledge_documents"),
-    "Equipment": (Equipment, "equipment"),
-    "FileUploadHistory": (FileUploadHistory, "file_upload_history"),
-    "KPI": (KPI, "kpis")
-}
+# CustomerComplaint endpoints
+@app.get("/api/customer_complaints", tags=["CustomerComplaint"])
+async def list_customer_complaints(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("CustomerComplaint", sort, limit)
 
-# Dynamically create routes for each collection
-for entity_name, (model_class, collection_name) in COLLECTIONS.items():
-    
-    # List endpoint
-    @app.get(f"/api/{collection_name}", tags=[entity_name])
-    async def list_items(
-        sort: Optional[str] = None,
-        limit: int = 100,
-        coll=collection_name
-    ):
-        return await get_items(coll, sort, limit)
-    
-    # Create endpoint
-    @app.post(f"/api/{collection_name}", tags=[entity_name])
-    async def create_item_endpoint(item: model_class, coll=collection_name):
-        item_dict = item.model_dump(exclude={"id"}, exclude_none=True)
-        return await create_item(coll, item_dict)
-    
-    # Get by ID endpoint
-    @app.get(f"/api/{collection_name}/{{item_id}}", tags=[entity_name])
-    async def get_item_endpoint(item_id: str, coll=collection_name):
-        item = await get_item_by_id(coll, item_id)
-        if not item:
-            raise HTTPException(status_code=404, detail="Item not found")
-        return item
-    
-    # Update endpoint
-    @app.put(f"/api/{collection_name}/{{item_id}}", tags=[entity_name])
-    async def update_item_endpoint(item_id: str, item: model_class, coll=collection_name):
-        item_dict = item.model_dump(exclude={"id"}, exclude_none=True)
-        updated = await update_item(coll, item_id, item_dict)
-        if not updated:
-            raise HTTPException(status_code=404, detail="Item not found")
-        return updated
-    
-    # Delete endpoint
-    @app.delete(f"/api/{collection_name}/{{item_id}}", tags=[entity_name])
-    async def delete_item_endpoint(item_id: str, coll=collection_name):
-        deleted = await delete_item(coll, item_id)
-        if not deleted:
-            raise HTTPException(status_code=404, detail="Item not found")
-        return {"message": "Item deleted successfully"}
-    
-    # Filter endpoint
-    @app.post(f"/api/{collection_name}/filter", tags=[entity_name])
-    async def filter_items_endpoint(
-        filters: Dict[str, Any],
-        sort: Optional[str] = None,
-        limit: int = 100,
-        coll=collection_name
-    ):
-        return await filter_items(coll, filters, sort, limit)
+@app.post("/api/customer_complaints", tags=["CustomerComplaint"])
+async def create_customer_complaint(item: CustomerComplaint):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("CustomerComplaint", item_dict)
+
+@app.get("/api/customer_complaints/{item_id}", tags=["CustomerComplaint"])
+async def get_customer_complaint(item_id: str):
+    item = await get_item_by_id("CustomerComplaint", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/customer_complaints/{item_id}", tags=["CustomerComplaint"])
+async def update_customer_complaint(item_id: str, item: CustomerComplaint):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("CustomerComplaint", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/customer_complaints/{item_id}", tags=["CustomerComplaint"])
+async def delete_customer_complaint(item_id: str):
+    deleted = await delete_item("CustomerComplaint", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/customer_complaints/filter", tags=["CustomerComplaint"])
+async def filter_customer_complaints(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("CustomerComplaint", filters, sort, limit)
+
+# DefectTicket endpoints
+@app.get("/api/defect_tickets", tags=["DefectTicket"])
+async def list_defect_tickets(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("DefectTicket", sort, limit)
+
+@app.post("/api/defect_tickets", tags=["DefectTicket"])
+async def create_defect_ticket(item: DefectTicket):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("DefectTicket", item_dict)
+
+@app.get("/api/defect_tickets/{item_id}", tags=["DefectTicket"])
+async def get_defect_ticket(item_id: str):
+    item = await get_item_by_id("DefectTicket", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/defect_tickets/{item_id}", tags=["DefectTicket"])
+async def update_defect_ticket(item_id: str, item: DefectTicket):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("DefectTicket", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/defect_tickets/{item_id}", tags=["DefectTicket"])
+async def delete_defect_ticket(item_id: str):
+    deleted = await delete_item("DefectTicket", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/defect_tickets/filter", tags=["DefectTicket"])
+async def filter_defect_tickets(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("DefectTicket", filters, sort, limit)
+
+# RCARecord endpoints
+@app.get("/api/rca_records", tags=["RCARecord"])
+async def list_rca_records(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("RCARecord", sort, limit)
+
+@app.post("/api/rca_records", tags=["RCARecord"])
+async def create_rca_record(item: RCARecord):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("RCARecord", item_dict)
+
+@app.get("/api/rca_records/{item_id}", tags=["RCARecord"])
+async def get_rca_record(item_id: str):
+    item = await get_item_by_id("RCARecord", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/rca_records/{item_id}", tags=["RCARecord"])
+async def update_rca_record(item_id: str, item: RCARecord):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("RCARecord", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/rca_records/{item_id}", tags=["RCARecord"])
+async def delete_rca_record(item_id: str):
+    deleted = await delete_item("RCARecord", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/rca_records/filter", tags=["RCARecord"])
+async def filter_rca_records(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("RCARecord", filters, sort, limit)
+
+# CAPAPlan endpoints
+@app.get("/api/capa_plans", tags=["CAPAPlan"])
+async def list_capa_plans(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("CAPAPlan", sort, limit)
+
+@app.post("/api/capa_plans", tags=["CAPAPlan"])
+async def create_capa_plan(item: CAPAPlan):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("CAPAPlan", item_dict)
+
+@app.get("/api/capa_plans/{item_id}", tags=["CAPAPlan"])
+async def get_capa_plan(item_id: str):
+    item = await get_item_by_id("CAPAPlan", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/capa_plans/{item_id}", tags=["CAPAPlan"])
+async def update_capa_plan(item_id: str, item: CAPAPlan):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("CAPAPlan", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/capa_plans/{item_id}", tags=["CAPAPlan"])
+async def delete_capa_plan(item_id: str):
+    deleted = await delete_item("CAPAPlan", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/capa_plans/filter", tags=["CAPAPlan"])
+async def filter_capa_plans(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("CAPAPlan", filters, sort, limit)
+
+# ProcessRun endpoints
+@app.get("/api/process_runs", tags=["ProcessRun"])
+async def list_process_runs(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("ProcessRun", sort, limit)
+
+@app.post("/api/process_runs", tags=["ProcessRun"])
+async def create_process_run(item: ProcessRun):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("ProcessRun", item_dict)
+
+@app.get("/api/process_runs/{item_id}", tags=["ProcessRun"])
+async def get_process_run(item_id: str):
+    item = await get_item_by_id("ProcessRun", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/process_runs/{item_id}", tags=["ProcessRun"])
+async def update_process_run(item_id: str, item: ProcessRun):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("ProcessRun", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/process_runs/{item_id}", tags=["ProcessRun"])
+async def delete_process_run(item_id: str):
+    deleted = await delete_item("ProcessRun", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/process_runs/filter", tags=["ProcessRun"])
+async def filter_process_runs(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("ProcessRun", filters, sort, limit)
+
+# GoldenBatch endpoints
+@app.get("/api/golden_batches", tags=["GoldenBatch"])
+async def list_golden_batches(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("GoldenBatch", sort, limit)
+
+@app.post("/api/golden_batches", tags=["GoldenBatch"])
+async def create_golden_batch(item: GoldenBatch):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("GoldenBatch", item_dict)
+
+@app.get("/api/golden_batches/{item_id}", tags=["GoldenBatch"])
+async def get_golden_batch(item_id: str):
+    item = await get_item_by_id("GoldenBatch", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/golden_batches/{item_id}", tags=["GoldenBatch"])
+async def update_golden_batch(item_id: str, item: GoldenBatch):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("GoldenBatch", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/golden_batches/{item_id}", tags=["GoldenBatch"])
+async def delete_golden_batch(item_id: str):
+    deleted = await delete_item("GoldenBatch", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/golden_batches/filter", tags=["GoldenBatch"])
+async def filter_golden_batches(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("GoldenBatch", filters, sort, limit)
+
+# SOP endpoints
+@app.get("/api/sops", tags=["SOP"])
+async def list_sops(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("SOP", sort, limit)
+
+@app.post("/api/sops", tags=["SOP"])
+async def create_sop(item: SOP):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("SOP", item_dict)
+
+@app.get("/api/sops/{item_id}", tags=["SOP"])
+async def get_sop(item_id: str):
+    item = await get_item_by_id("SOP", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/sops/{item_id}", tags=["SOP"])
+async def update_sop(item_id: str, item: SOP):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("SOP", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/sops/{item_id}", tags=["SOP"])
+async def delete_sop(item_id: str):
+    deleted = await delete_item("SOP", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/sops/filter", tags=["SOP"])
+async def filter_sops(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("SOP", filters, sort, limit)
+
+# DoE endpoints
+@app.get("/api/does", tags=["DoE"])
+async def list_does(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("DoE", sort, limit)
+
+@app.post("/api/does", tags=["DoE"])
+async def create_doe(item: DoE):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("DoE", item_dict)
+
+@app.get("/api/does/{item_id}", tags=["DoE"])
+async def get_doe(item_id: str):
+    item = await get_item_by_id("DoE", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/does/{item_id}", tags=["DoE"])
+async def update_doe(item_id: str, item: DoE):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("DoE", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/does/{item_id}", tags=["DoE"])
+async def delete_doe(item_id: str):
+    deleted = await delete_item("DoE", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/does/filter", tags=["DoE"])
+async def filter_does(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("DoE", filters, sort, limit)
+
+# KnowledgeDocument endpoints
+@app.get("/api/knowledge_documents", tags=["KnowledgeDocument"])
+async def list_knowledge_documents(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("KnowledgeDocument", sort, limit)
+
+@app.post("/api/knowledge_documents", tags=["KnowledgeDocument"])
+async def create_knowledge_document(item: KnowledgeDocument):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("KnowledgeDocument", item_dict)
+
+@app.get("/api/knowledge_documents/{item_id}", tags=["KnowledgeDocument"])
+async def get_knowledge_document(item_id: str):
+    item = await get_item_by_id("KnowledgeDocument", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/knowledge_documents/{item_id}", tags=["KnowledgeDocument"])
+async def update_knowledge_document(item_id: str, item: KnowledgeDocument):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("KnowledgeDocument", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/knowledge_documents/{item_id}", tags=["KnowledgeDocument"])
+async def delete_knowledge_document(item_id: str):
+    deleted = await delete_item("KnowledgeDocument", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/knowledge_documents/filter", tags=["KnowledgeDocument"])
+async def filter_knowledge_documents(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("KnowledgeDocument", filters, sort, limit)
+
+# Equipment endpoints
+@app.get("/api/equipment", tags=["Equipment"])
+async def list_equipment(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("Equipment", sort, limit)
+
+@app.post("/api/equipment", tags=["Equipment"])
+async def create_equipment(item: Equipment):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("Equipment", item_dict)
+
+@app.get("/api/equipment/{item_id}", tags=["Equipment"])
+async def get_equipment(item_id: str):
+    item = await get_item_by_id("Equipment", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/equipment/{item_id}", tags=["Equipment"])
+async def update_equipment(item_id: str, item: Equipment):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("Equipment", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/equipment/{item_id}", tags=["Equipment"])
+async def delete_equipment(item_id: str):
+    deleted = await delete_item("Equipment", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/equipment/filter", tags=["Equipment"])
+async def filter_equipment(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("Equipment", filters, sort, limit)
+
+# FileUploadHistory endpoints
+@app.get("/api/file_upload_history", tags=["FileUploadHistory"])
+async def list_file_upload_history(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("FileUploadHistory", sort, limit)
+
+@app.post("/api/file_upload_history", tags=["FileUploadHistory"])
+async def create_file_upload_history(item: FileUploadHistory):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("FileUploadHistory", item_dict)
+
+@app.get("/api/file_upload_history/{item_id}", tags=["FileUploadHistory"])
+async def get_file_upload_history(item_id: str):
+    item = await get_item_by_id("FileUploadHistory", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.delete("/api/file_upload_history/{item_id}", tags=["FileUploadHistory"])
+async def delete_file_upload_history(item_id: str):
+    deleted = await delete_item("FileUploadHistory", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+# KPI endpoints
+@app.get("/api/kpis", tags=["KPI"])
+async def list_kpis(sort: Optional[str] = None, limit: int = 100):
+    return await get_items("KPI", sort, limit)
+
+@app.post("/api/kpis", tags=["KPI"])
+async def create_kpi(item: KPI):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    return await create_item("KPI", item_dict)
+
+@app.get("/api/kpis/{item_id}", tags=["KPI"])
+async def get_kpi(item_id: str):
+    item = await get_item_by_id("KPI", item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+@app.put("/api/kpis/{item_id}", tags=["KPI"])
+async def update_kpi(item_id: str, item: KPI):
+    item_dict = item.model_dump(exclude={"id"}, exclude_none=False)
+    updated = await update_item("KPI", item_id, item_dict)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return updated
+
+@app.delete("/api/kpis/{item_id}", tags=["KPI"])
+async def delete_kpi(item_id: str):
+    deleted = await delete_item("KPI", item_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return {"message": "Item deleted successfully"}
+
+@app.post("/api/kpis/filter", tags=["KPI"])
+async def filter_kpis(filters: Dict[str, Any], sort: Optional[str] = None, limit: int = 100):
+    return await filter_items("KPI", filters, sort, limit)
 
 # File upload endpoint
 @app.post("/api/upload", tags=["Files"])
 async def upload_file(file: UploadFile = File(...)):
     """Upload a file"""
-    # In production, save to cloud storage (S3, etc.)
     file_data = {
         "fileName": file.filename,
         "fileType": file.content_type,
         "uploadDate": datetime.utcnow(),
-        "fileSize": 0,  # Would calculate actual size
+        "fileSize": 0,
         "status": "completed"
     }
-    return await create_item("file_upload_history", file_data)
+    return await create_item("FileUploadHistory", file_data)
 
 # Batch operations
 @app.post("/api/batch/create", tags=["Batch"])
@@ -448,13 +819,18 @@ async def batch_create(collection: str, items: List[Dict[str, Any]]):
 @app.get("/api/statistics", tags=["Analytics"])
 async def get_statistics():
     """Get overall statistics"""
+    collections = [
+        "CustomerComplaint", "DefectTicket", "RCARecord", "CAPAPlan",
+        "ProcessRun", "GoldenBatch", "SOP", "DoE", "KnowledgeDocument",
+        "Equipment", "FileUploadHistory", "KPI"
+    ]
     stats = {}
-    for entity_name, (_, collection_name) in COLLECTIONS.items():
-        count = await db[collection_name].count_documents({})
-        stats[entity_name] = count
+    for coll_name in collections:
+        count = await db[coll_name].count_documents({})
+        stats[coll_name] = count
     return stats
 
-# AI Service Endpoints
+# AI Service Endpoints (mock for now, will be replaced with real AI)
 from services import ai_service_mock
 
 @app.post("/api/ai/rca-suggestions", tags=["AI"])
@@ -498,8 +874,7 @@ async def search_knowledge(data: Dict[str, Any]):
     """Semantic knowledge base search"""
     query = data.get("query", "")
     
-    # Get all knowledge documents
-    documents = await get_items("knowledge_documents", limit=1000)
+    documents = await get_items("KnowledgeDocument", limit=1000)
     
     results = ai_service_mock.search_knowledge_base(query, documents)
     return results
