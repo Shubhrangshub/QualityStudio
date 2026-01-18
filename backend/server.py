@@ -1147,6 +1147,25 @@ async def get_email_service_status():
         "email_from": email_service.email_from
     }
 
+@app.post("/api/notifications/email/send", tags=["Notifications"])
+async def send_email_notification(
+    data: Dict[str, Any],
+    current_user: Dict = Depends(get_current_user_optional)
+):
+    """Generic email sending endpoint - replaces Base44 integrations.Core.SendEmail"""
+    to_emails = data.get("to_emails", [])
+    if isinstance(to_emails, str):
+        to_emails = [to_emails]
+    
+    if not to_emails:
+        return {"success": False, "error": "No recipients specified"}
+    
+    subject = data.get("subject", "Notification from QualityStudio")
+    body = data.get("body", "")
+    
+    result = await email_service.send_email(to_emails, subject, body)
+    return result
+
 # ============== WEBSOCKET REAL-TIME NOTIFICATIONS ==============
 from services.websocket_service import manager, send_notification, NotificationType
 from fastapi import WebSocket, WebSocketDisconnect
