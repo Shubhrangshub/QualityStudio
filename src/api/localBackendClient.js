@@ -487,6 +487,78 @@ export class NotificationSocket {
 // Global notification socket instance
 export const notificationSocket = new NotificationSocket();
 
+// Integrations API - Mimics Base44 integrations.Core interface
+// Routes AI calls to our backend AI service
+export const integrations = {
+  Core: {
+    // AI LLM invocation - routes to backend AI service
+    InvokeLLM: async ({ prompt, response_json_schema, add_context_from_user_data }) => {
+      try {
+        const response = await apiClient.request('/ai/invoke-llm', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            prompt, 
+            response_json_schema,
+            add_context_from_user_data 
+          }),
+        });
+        return response;
+      } catch (error) {
+        console.error('LLM invocation failed:', error);
+        throw error;
+      }
+    },
+    
+    // File upload - routes to backend file service
+    UploadFile: async ({ file }) => {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const url = `${API_BASE_URL}/files/upload`;
+        const token = getAuthToken();
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.detail || 'Upload failed');
+        }
+        
+        const result = await response.json();
+        return { file_url: result.url || result.file_url };
+      } catch (error) {
+        console.error('File upload failed:', error);
+        throw error;
+      }
+    },
+    
+    // Email sending - routes to backend notification service
+    SendEmail: async ({ to, subject, body, html }) => {
+      try {
+        const response = await apiClient.request('/notifications/email/send', {
+          method: 'POST',
+          body: JSON.stringify({ 
+            to_emails: Array.isArray(to) ? to : [to], 
+            subject, 
+            body: body || html 
+          }),
+        });
+        return response;
+      } catch (error) {
+        console.error('Email send failed:', error);
+        // Don't throw - email failures shouldn't break the UI
+        return { success: false, error: error.message };
+      }
+    },
+  }
+};
+
 // Export as API interface
 export const localBackend = {
   entities,
