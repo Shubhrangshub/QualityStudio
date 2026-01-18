@@ -1,0 +1,16 @@
+{
+  "exportDate": "2026-01-18T06:49:31.860Z",
+  "entities": {
+    "CustomerComplaint": [],
+    "DefectTicket": [],
+    "RCARecord": [],
+    "CAPAPlan": [],
+    "ProcessRun": [],
+    "GoldenBatch": [],
+    "SOP": [],
+    "DoE": [],
+    "KnowledgeDocument": [],
+    "Equipment": [],
+    "FileUploadHistory": []
+  }
+}
