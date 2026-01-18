@@ -1,0 +1,226 @@
+/* Mobile Responsive Enhancements for QualityStudio */
+
+/* Base responsive breakpoints */
+@media (max-width: 640px) {
+  /* Reduce padding on mobile */
+  .p-6 {
+    padding: 1rem;
+  }
+  
+  /* Stack cards vertically on mobile */
+  .grid-cols-2,
+  .grid-cols-3,
+  .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Reduce font sizes on mobile */
+  h1 {
+    font-size: 1.5rem !important;
+  }
+  
+  h2 {
+    font-size: 1.25rem !important;
+  }
+  
+  /* Full width buttons on mobile */
+  .btn-responsive {
+    width: 100%;
+  }
+  
+  /* Reduce table font sizes */
+  table {
+    font-size: 0.75rem;
+  }
+  
+  th, td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  /* Hide less important columns on mobile */
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  /* Make forms stack vertically */
+  .form-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  /* Smaller cards on mobile */
+  .card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Two column grid on tablet */
+  .md\:grid-cols-3,
+  .md\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Adjust sidebar on tablet */
+  .sidebar-responsive {
+    width: 100%;
+    max-width: 280px;
+  }
+  
+  /* Stack filter bars */
+  .filter-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .filter-bar > * {
+    width: 100%;
+  }
+}
+
+/* Improved touch targets for mobile */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  a,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* Responsive typography */
+.text-responsive {
+  font-size: clamp(0.875rem, 2vw, 1rem);
+}
+
+.heading-responsive {
+  font-size: clamp(1.25rem, 4vw, 2rem);
+}
+
+/* Safe area insets for notched phones */
+@supports (padding: max(0px)) {
+  .safe-area-padding {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Dashboard responsive cards */
+@media (max-width: 640px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
+  }
+  
+  .stat-card .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .stat-card .stat-label {
+    font-size: 0.75rem;
+  }
+}
+
+/* Chart responsive */
+.chart-container {
+  width: 100%;
+  min-height: 250px;
+  max-height: 400px;
+}
+
+@media (max-width: 640px) {
+  .chart-container {
+    min-height: 200px;
+    max-height: 300px;
+  }
+}
+
+/* Modal responsive */
+@media (max-width: 640px) {
+  .modal-content {
+    width: 95%;
+    max-height: 90vh;
+    margin: 1rem auto;
+  }
+}
+
+/* Form improvements */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+  
+  .form-actions button {
+    width: 100%;
+  }
+}
+
+/* Navigation improvements */
+@media (max-width: 1024px) {
+  .sidebar-collapsed .sidebar-label {
+    display: none;
+  }
+  
+  .sidebar-collapsed .sidebar-item {
+    justify-content: center;
+    padding: 0.75rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  body {
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+  
+  h1 {
+    font-size: 18pt;
+  }
+  
+  h2 {
+    font-size: 14pt;
+  }
+  
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+  
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+  }
+}
